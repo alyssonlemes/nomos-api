@@ -1,0 +1,181 @@
+from typing import Optional, List
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
+
+from app.models.client import Client, ClientStatus
+from app.schemas.client import ClientCreate, ClientUpdate
+
+
+class ClientService:
+    """
+    Serviço para operações de cliente (Business Logic Layer)
+    """
+    
+    @staticmethod
+    def get_by_id(db: Session, client_id: int, user_id: int) -> Optional[Client]:
+        """
+        Busca cliente por ID (apenas do usuário logado)
+        """
+        return db.query(Client).filter(
+            Client.id == client_id,
+            Client.user_id == user_id
+        ).first()
+    
+    @staticmethod
+    def get_by_document(db: Session, document: str, user_id: int) -> Optional[Client]:
+        """
+        Busca cliente por documento (CPF/CNPJ)
+        """
+        return db.query(Client).filter(
+            Client.document == document,
+            Client.user_id == user_id
+        ).first()
+    
+    @staticmethod
+    def get_all(
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[ClientStatus] = None,
+        search: Optional[str] = None
+    ) -> tuple[List[Client], int]:
+        """
+        Lista todos os clientes do usuário com filtros e paginação
+        
+        Returns:
+            Tupla com (lista de clientes, total de registros)
+        """
+        query = db.query(Client).filter(Client.user_id == user_id)
+        
+        # Filtro por status
+        if status:
+            query = query.filter(Client.status == status)
+        
+        # Busca por nome, email ou documento
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Client.name.ilike(search_term),
+                    Client.email.ilike(search_term),
+                    Client.document.ilike(search_term),
+                    Client.company_name.ilike(search_term)
+                )
+            )
+        
+        total = query.count()
+        clients = query.offset(skip).limit(limit).all()
+        
+        return clients, total
+    
+    @staticmethod
+    def create(db: Session, client_in: ClientCreate, user_id: int) -> Client:
+        """
+        Cria um novo cliente
+        
+        Args:
+            db: Sessão do banco de dados
+            client_in: Dados do cliente a ser criado
+            user_id: ID do usuário (advogado responsável)
+        
+        Returns:
+            Cliente criado
+        """
+        db_client = Client(
+            name=client_in.name,
+            email=client_in.email,
+            phone=client_in.phone,
+            document=client_in.document,
+            client_type=client_in.client_type,
+            status=client_in.status,
+            address=client_in.address,
+            city=client_in.city,
+            state=client_in.state,
+            zip_code=client_in.zip_code,
+            notes=client_in.notes,
+            company_name=client_in.company_name,
+            user_id=user_id,
+            is_active=True
+        )
+        
+        db.add(db_client)
+        db.commit()
+        db.refresh(db_client)
+        return db_client
+    
+    @staticmethod
+    def update(
+        db: Session,
+        client_id: int,
+        client_in: ClientUpdate,
+        user_id: int
+    ) -> Optional[Client]:
+        """
+        Atualiza um cliente existente
+        
+        Args:
+            db: Sessão do banco de dados
+            client_id: ID do cliente
+            client_in: Dados para atualização
+            user_id: ID do usuário (validação de propriedade)
+        
+        Returns:
+            Cliente atualizado ou None se não encontrado
+        """
+        db_client = ClientService.get_by_id(db, client_id, user_id)
+        if not db_client:
+            return None
+        
+        update_data = client_in.model_dump(exclude_unset=True)
+        
+        for field, value in update_data.items():
+            setattr(db_client, field, value)
+        
+        db.add(db_client)  # Marca como modificado
+        db.commit()
+        db.refresh(db_client)
+        return db_client
+    
+    @staticmethod
+    def delete(db: Session, client_id: int, user_id: int) -> Optional[Client]:
+        """
+        Deleta um cliente
+        
+        Args:
+            db: Sessão do banco de dados
+            client_id: ID do cliente
+            user_id: ID do usuário (validação de propriedade)
+        
+        Returns:
+            Cliente deletado ou None se não encontrado
+        """
+        db_client = ClientService.get_by_id(db, client_id, user_id)
+        if not db_client:
+            return None
+        
+        db.delete(db_client)
+        db.commit()
+        return db_client
+    
+    @staticmethod
+    def get_statistics(db: Session, user_id: int) -> dict:
+        """
+        Retorna estatísticas dos clientes do usuário
+        """
+        total = db.query(Client).filter(Client.user_id == user_id).count()
+        active = db.query(Client).filter(
+            Client.user_id == user_id,
+            Client.status == ClientStatus.ACTIVE
+        ).count()
+        prospects = db.query(Client).filter(
+            Client.user_id == user_id,
+            Client.status == ClientStatus.PROSPECT
+        ).count()
+        
+        return {
+            "total": total,
+            "active": active,
+            "prospects": prospects,
+            "inactive": total - active - prospects
+        }
