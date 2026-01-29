@@ -1,0 +1,774 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-29T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_nomos_api",
+      "_type": "workspace",
+      "name": "Nomos API",
+      "description": "Coleção completa da API Nomos - Sistema de Gestão Jurídica",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8000/api/v1",
+        "token": ""
+      },
+      "dataPropertyOrder": {
+        "&": ["base_url", "token"]
+      },
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_auth",
+      "_type": "request_group",
+      "name": "Autenticação",
+      "environment": {},
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_organizations",
+      "_type": "request_group",
+      "name": "Organizações",
+      "environment": {},
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_users",
+      "_type": "request_group",
+      "name": "Usuários",
+      "environment": {},
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_clients",
+      "_type": "request_group",
+      "name": "Clientes",
+      "environment": {},
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_legal_actions",
+      "_type": "request_group",
+      "name": "Ações Jurídicas",
+      "environment": {},
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_parties",
+      "_type": "request_group",
+      "name": "Partes do Processo",
+      "environment": {},
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "folder_movements",
+      "_type": "request_group",
+      "name": "Movimentações",
+      "environment": {},
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "folder_deadlines",
+      "_type": "request_group",
+      "name": "Prazos",
+      "environment": {},
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_login",
+      "_type": "request",
+      "name": "Login",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"seu_usuario\",\n  \"password\": \"sua_senha\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "folder_auth"
+    },
+    {
+      "_id": "req_register",
+      "_type": "request",
+      "name": "Registrar Usuário",
+      "method": "POST",
+      "url": "{{ _.base_url }}/users/register",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"usuario@example.com\",\n  \"username\": \"usuario123\",\n  \"password\": \"senha123\",\n  \"full_name\": \"Nome Completo\",\n  \"organization_id\": 1\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_register_with_org",
+      "_type": "request",
+      "name": "Registrar Usuário com Organização",
+      "method": "POST",
+      "url": "{{ _.base_url }}/users/register-with-organization",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"admin@escritorio.com\",\n  \"username\": \"admin_escritorio\",\n  \"password\": \"senha123\",\n  \"full_name\": \"Administrador\",\n  \"organization_name\": \"Meu Escritório de Advocacia\",\n  \"organization_document\": \"12345678000190\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_get_me",
+      "_type": "request",
+      "name": "Obter Usuário Atual",
+      "method": "GET",
+      "url": "{{ _.base_url }}/users/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_list_users",
+      "_type": "request",
+      "name": "Listar Usuários",
+      "method": "GET",
+      "url": "{{ _.base_url }}/users?skip=0&limit=100",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_get_user",
+      "_type": "request",
+      "name": "Buscar Usuário por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/users/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_update_user",
+      "_type": "request",
+      "name": "Atualizar Usuário",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/users/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"full_name\": \"Nome Atualizado\",\n  \"email\": \"novoemail@example.com\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_delete_user",
+      "_type": "request",
+      "name": "Deletar Usuário",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/users/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_create_client",
+      "_type": "request",
+      "name": "Criar Cliente",
+      "method": "POST",
+      "url": "{{ _.base_url }}/clients",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao@example.com\",\n  \"phone\": \"11987654321\",\n  \"document\": \"12345678900\",\n  \"client_type\": \"individual\",\n  \"status\": \"active\",\n  \"notes\": \"Cliente importante\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_list_clients",
+      "_type": "request",
+      "name": "Listar Clientes",
+      "method": "GET",
+      "url": "{{ _.base_url }}/clients?skip=0&limit=100",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_list_clients_filter",
+      "_type": "request",
+      "name": "Listar Clientes (com filtros)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/clients?skip=0&limit=100&status=active&search=joao",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_get_client_stats",
+      "_type": "request",
+      "name": "Estatísticas dos Clientes",
+      "method": "GET",
+      "url": "{{ _.base_url }}/clients/statistics",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_get_client",
+      "_type": "request",
+      "name": "Buscar Cliente por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/clients/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_update_client",
+      "_type": "request",
+      "name": "Atualizar Cliente",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/clients/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João Silva Atualizado\",\n  \"phone\": \"11999999999\",\n  \"status\": \"active\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_delete_client",
+      "_type": "request",
+      "name": "Deletar Cliente",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/clients/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_create_legal_action",
+      "_type": "request",
+      "name": "Criar Ação Jurídica",
+      "method": "POST",
+      "url": "{{ _.base_url }}/legal-actions",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"number\": \"1234567-89.2026.8.26.0100\",\n  \"title\": \"Ação de Cobrança\",\n  \"action_type\": \"civil\",\n  \"client_id\": 1,\n  \"description\": \"Cobrança de valores não pagos\",\n  \"value\": 50000.00,\n  \"legal_status\": \"in_progress\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_list_legal_actions",
+      "_type": "request",
+      "name": "Listar Ações Jurídicas",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions?skip=0&limit=100",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_list_legal_actions_filter",
+      "_type": "request",
+      "name": "Listar Ações (com filtros)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions?skip=0&limit=100&legal_status=in_progress&client_id=1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_get_legal_action",
+      "_type": "request",
+      "name": "Buscar Ação por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_update_legal_action",
+      "_type": "request",
+      "name": "Atualizar Ação Jurídica",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Ação de Cobrança Atualizada\",\n  \"legal_status\": \"completed\",\n  \"value\": 60000.00\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_delete_legal_action",
+      "_type": "request",
+      "name": "Deletar Ação Jurídica",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_get_action_stats",
+      "_type": "request",
+      "name": "Estatísticas da Ação",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions/1/statistics",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_add_party",
+      "_type": "request",
+      "name": "Adicionar Parte",
+      "method": "POST",
+      "url": "{{ _.base_url }}/legal-actions/1/parties",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Silva\",\n  \"party_type\": \"plaintiff\",\n  \"document\": \"98765432100\",\n  \"lawyer_name\": \"Dr. José Santos\",\n  \"lawyer_oab\": \"OAB/SP 123456\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_parties"
+    },
+    {
+      "_id": "req_update_party",
+      "_type": "request",
+      "name": "Atualizar Parte",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/legal-actions/1/parties/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Maria Silva Atualizada\",\n  \"lawyer_name\": \"Dr. Carlos Mendes\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_parties"
+    },
+    {
+      "_id": "req_delete_party",
+      "_type": "request",
+      "name": "Deletar Parte",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/legal-actions/1/parties/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_parties"
+    },
+    {
+      "_id": "req_add_movement",
+      "_type": "request",
+      "name": "Adicionar Movimentação",
+      "method": "POST",
+      "url": "{{ _.base_url }}/legal-actions/1/movements",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"movement_type\": \"hearing\",\n  \"description\": \"Audiência de instrução e julgamento\",\n  \"movement_date\": \"2026-02-15T10:00:00\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_movements"
+    },
+    {
+      "_id": "req_update_movement",
+      "_type": "request",
+      "name": "Atualizar Movimentação",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/legal-actions/1/movements/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"description\": \"Audiência adiada\",\n  \"movement_date\": \"2026-03-15T10:00:00\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_movements"
+    },
+    {
+      "_id": "req_delete_movement",
+      "_type": "request",
+      "name": "Deletar Movimentação",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/legal-actions/1/movements/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_movements"
+    },
+    {
+      "_id": "req_add_deadline",
+      "_type": "request",
+      "name": "Criar Prazo",
+      "method": "POST",
+      "url": "{{ _.base_url }}/legal-actions/1/deadlines",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"deadline_type\": \"appeal\",\n  \"description\": \"Prazo para apresentar apelação\",\n  \"due_date\": \"2026-02-28\",\n  \"status\": \"pending\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_deadlines"
+    },
+    {
+      "_id": "req_update_deadline",
+      "_type": "request",
+      "name": "Atualizar Prazo",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/legal-actions/1/deadlines/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"completed\",\n  \"description\": \"Apelação apresentada\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_deadlines"
+    },
+    {
+      "_id": "req_delete_deadline",
+      "_type": "request",
+      "name": "Deletar Prazo",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/legal-actions/1/deadlines/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_deadlines"
+    },
+    {
+      "_id": "req_pending_deadlines",
+      "_type": "request",
+      "name": "Prazos Pendentes",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions/user/pending-deadlines",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_deadlines"
+    },
+    {
+      "_id": "req_overdue_deadlines",
+      "_type": "request",
+      "name": "Prazos Vencidos",
+      "method": "GET",
+      "url": "{{ _.base_url }}/legal-actions/user/overdue-deadlines",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_deadlines"
+    },
+    {
+      "_id": "req_create_organization",
+      "_type": "request",
+      "name": "Criar Organização",
+      "method": "POST",
+      "url": "{{ _.base_url }}/organizations",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Escritório Silva & Associados\",\n  \"document\": \"12345678000190\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_list_organizations",
+      "_type": "request",
+      "name": "Listar Organizações",
+      "method": "GET",
+      "url": "{{ _.base_url }}/organizations?skip=0&limit=100",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_get_my_organization",
+      "_type": "request",
+      "name": "Minha Organização",
+      "method": "GET",
+      "url": "{{ _.base_url }}/organizations/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_get_organization",
+      "_type": "request",
+      "name": "Buscar Organização por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/organizations/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_update_organization",
+      "_type": "request",
+      "name": "Atualizar Organização",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/organizations/1",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Escritório Atualizado\",\n  \"is_active\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_delete_organization",
+      "_type": "request",
+      "name": "Deletar Organização",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/organizations/1",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_add_user_to_org",
+      "_type": "request",
+      "name": "Vincular Usuário à Organização",
+      "method": "POST",
+      "url": "{{ _.base_url }}/organizations/1/users/2",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_list_org_users",
+      "_type": "request",
+      "name": "Listar Usuários da Organização",
+      "method": "GET",
+      "url": "{{ _.base_url }}/organizations/1/users?skip=0&limit=100",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "folder_organizations"
+    }
+  ]
+}

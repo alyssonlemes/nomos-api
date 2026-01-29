@@ -20,6 +20,13 @@ class UserCreate(UserBase):
     organization_id: int
 
 
+class UserRegisterWithOrg(UserBase):
+    """Schema para registro de usuário com criação de organização"""
+    password: str = Field(..., min_length=6, description="Senha com no mínimo 6 caracteres")
+    organization_name: str = Field(..., min_length=3, max_length=200, description="Nome da organização/escritório")
+    organization_document: Optional[str] = Field(None, max_length=20, description="CNPJ da organização")
+
+
 class UserUpdate(BaseModel):
     """Schema para atualização de usuário"""
     email: Optional[EmailStr] = None

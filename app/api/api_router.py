@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router
+from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router
 
 api_router = APIRouter()
 
@@ -9,6 +9,13 @@ api_router.include_router(
     auth_router,
     prefix="/auth",
     tags=["Autenticação"]
+)
+
+# Incluir rotas de organizações
+api_router.include_router(
+    organizations_router,
+    prefix="/organizations",
+    tags=["Organizações"]
 )
 
 # Incluir rotas de usuários
