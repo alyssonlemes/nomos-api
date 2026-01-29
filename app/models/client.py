@@ -49,8 +49,12 @@ class Client(Base):
     company_name = Column(String)  # Para pessoa jurídica
     
     # Relacionamento com usuário (advogado responsável)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     user = relationship("User", backref="clients")
+    
+    # Organização
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization = relationship("Organization", backref="clients")
     
     # Metadados
     is_active = Column(Boolean, default=True)

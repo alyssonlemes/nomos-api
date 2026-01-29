@@ -16,25 +16,25 @@ class LegalActionService:
     """
     
     @staticmethod
-    def get_by_id(db: Session, action_id: int, user_id: int) -> Optional[LegalAction]:
-        """Busca ação jurídica por ID (apenas do usuário logado)"""
+    def get_by_id(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
+        """Busca ação jurídica por ID (apenas da organização)"""
         return db.query(LegalAction).filter(
             LegalAction.id == action_id,
-            LegalAction.user_id == user_id
+            LegalAction.organization_id == organization_id
         ).first()
     
     @staticmethod
-    def get_by_number(db: Session, number: str, user_id: int) -> Optional[LegalAction]:
+    def get_by_number(db: Session, number: str, organization_id: int) -> Optional[LegalAction]:
         """Busca ação jurídica por número do processo"""
         return db.query(LegalAction).filter(
             LegalAction.number == number,
-            LegalAction.user_id == user_id
+            LegalAction.organization_id == organization_id
         ).first()
     
     @staticmethod
     def get_all(
         db: Session,
-        user_id: int,
+        organization_id: int,
         skip: int = 0,
         limit: int = 100,
         legal_status: Optional[LegalStatus] = None,
@@ -42,8 +42,8 @@ class LegalActionService:
         client_id: Optional[int] = None,
         search: Optional[str] = None
     ) -> Tuple[List[LegalAction], int]:
-        """Lista todas as ações jurídicas do usuário com filtros"""
-        query = db.query(LegalAction).filter(LegalAction.user_id == user_id)
+        """Lista todas as ações jurídicas da organização com filtros"""
+        query = db.query(LegalAction).filter(LegalAction.organization_id == organization_id)
         
         if legal_status:
             query = query.filter(LegalAction.legal_status == legal_status)
@@ -69,13 +69,14 @@ class LegalActionService:
         return actions, total
     
     @staticmethod
-    def create(db: Session, action_in: LegalActionCreate, user_id: int) -> LegalAction:
+    def create(db: Session, action_in: LegalActionCreate, organization_id: int, user_id: Optional[int] = None) -> LegalAction:
         """Cria uma nova ação jurídica"""
         db_action = LegalAction(
             number=action_in.number,
             title=action_in.title,
             description=action_in.description,
             client_id=action_in.client_id,
+            organization_id=organization_id,
             user_id=user_id,
             action_type=action_in.action_type,
             legal_status=action_in.legal_status,
@@ -95,10 +96,10 @@ class LegalActionService:
         db: Session,
         action_id: int,
         action_in: LegalActionUpdate,
-        user_id: int
+        organization_id: int
     ) -> Optional[LegalAction]:
         """Atualiza uma ação jurídica"""
-        db_action = LegalActionService.get_by_id(db, action_id, user_id)
+        db_action = LegalActionService.get_by_id(db, action_id, organization_id)
         if not db_action:
             return None
         
@@ -113,9 +114,9 @@ class LegalActionService:
         return db_action
     
     @staticmethod
-    def delete(db: Session, action_id: int, user_id: int) -> Optional[LegalAction]:
+    def delete(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
         """Deleta uma ação jurídica"""
-        db_action = LegalActionService.get_by_id(db, action_id, user_id)
+        db_action = LegalActionService.get_by_id(db, action_id, organization_id)
         if not db_action:
             return None
         
@@ -124,19 +125,19 @@ class LegalActionService:
         return db_action
     
     @staticmethod
-    def get_statistics(db: Session, user_id: int) -> dict:
-        """Retorna estatísticas das ações jurídicas do usuário"""
-        total = db.query(LegalAction).filter(LegalAction.user_id == user_id).count()
+    def get_statistics(db: Session, organization_id: int) -> dict:
+        """Retorna estatísticas das ações jurídicas da organização"""
+        total = db.query(LegalAction).filter(LegalAction.organization_id == organization_id).count()
         
         active = db.query(LegalAction).filter(
-            LegalAction.user_id == user_id,
+            LegalAction.organization_id == organization_id,
             LegalAction.legal_status.in_([
                 LegalStatus.FILING, LegalStatus.LITIGATION, LegalStatus.EXECUTION, LegalStatus.APPEAL
             ])
         ).count()
         
         finalized = db.query(LegalAction).filter(
-            LegalAction.user_id == user_id,
+            LegalAction.organization_id == organization_id,
             LegalAction.legal_status == LegalStatus.FINALIZED
         ).count()
         
@@ -327,19 +328,19 @@ class DeadlineService:
         return db_deadline
     
     @staticmethod
-    def get_pending_deadlines(db: Session, user_id: int) -> List[Deadline]:
-        """Retorna prazos pendentes do usuário"""
+    def get_pending_deadlines(db: Session, organization_id: int) -> List[Deadline]:
+        """Retorna prazos pendentes da organização"""
         return db.query(Deadline).join(LegalAction).filter(
-            LegalAction.user_id == user_id,
+            LegalAction.organization_id == organization_id,
             Deadline.status == DeadlineStatus.PENDING,
             Deadline.due_date >= date.today()
         ).order_by(Deadline.due_date).all()
     
     @staticmethod
-    def get_overdue_deadlines(db: Session, user_id: int) -> List[Deadline]:
-        """Retorna prazos vencidos do usuário"""
+    def get_overdue_deadlines(db: Session, organization_id: int) -> List[Deadline]:
+        """Retorna prazos vencidos da organização"""
         return db.query(Deadline).join(LegalAction).filter(
-            LegalAction.user_id == user_id,
+            LegalAction.organization_id == organization_id,
             Deadline.status == DeadlineStatus.PENDING,
             Deadline.due_date < date.today()
         ).order_by(Deadline.due_date).all()

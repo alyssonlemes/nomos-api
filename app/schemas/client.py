@@ -67,7 +67,8 @@ class ClientUpdate(BaseModel):
 class ClientResponse(ClientBase):
     """Schema de resposta para Client"""
     id: int
-    user_id: int
+    organization_id: int
+    user_id: Optional[int] = None
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

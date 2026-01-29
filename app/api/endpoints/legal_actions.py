@@ -40,13 +40,13 @@ def create_legal_action(
     - **client_id**: ID do cliente envolvido
     """
     # Verificar se número já existe
-    if LegalActionService.get_by_number(db, number=action_in.number, user_id=current_user.id):
+    if LegalActionService.get_by_number(db, number=action_in.number, organization_id=current_user.organization_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ação jurídica com este número já existe"
         )
     
-    action = LegalActionService.create(db=db, action_in=action_in, user_id=current_user.id)
+    action = LegalActionService.create(db=db, action_in=action_in, organization_id=current_user.organization_id, user_id=current_user.id)
     return action
 
 
@@ -69,7 +69,7 @@ def list_legal_actions(
     """
     actions, total = LegalActionService.get_all(
         db,
-        user_id=current_user.id,
+        organization_id=current_user.organization_id,
         skip=skip,
         limit=limit,
         legal_status=legal_status,
@@ -93,7 +93,7 @@ def get_legal_action(
     """
     Retorna uma ação jurídica com todas as partes, movimentações e prazos
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     
     if not action:
         raise HTTPException(
@@ -122,7 +122,7 @@ def update_legal_action(
         db,
         action_id=action_id,
         action_in=action_in,
-        user_id=current_user.id
+        organization_id=current_user.organization_id
     )
     
     if not action:
@@ -147,7 +147,7 @@ def delete_legal_action(
     """
     Deleta uma ação jurídica
     """
-    action = LegalActionService.delete(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.delete(db, action_id=action_id, organization_id=current_user.organization_id)
     
     if not action:
         raise HTTPException(
@@ -168,7 +168,7 @@ def get_action_statistics(
     """
     Retorna estatísticas de uma ação jurídica específica
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     
     if not action:
         raise HTTPException(
@@ -201,7 +201,7 @@ def add_party(
     """
     Adiciona uma parte (autor, réu, etc) ao processo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -224,7 +224,7 @@ def update_party(
     """
     Atualiza uma parte do processo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -249,7 +249,7 @@ def delete_party(
     """
     Remove uma parte do processo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -278,7 +278,7 @@ def add_movement(
     - **movement_type**: Tipo (hearing, decision, judgment, etc)
     - **movement_date**: Data da movimentação
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -301,7 +301,7 @@ def update_movement(
     """
     Atualiza uma movimentação do processo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -328,7 +328,7 @@ def delete_movement(
     """
     Deleta uma movimentação
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -357,7 +357,7 @@ def add_deadline(
     - **deadline_type**: Tipo (moção, apelação, contestação, etc)
     - **due_date**: Data de vencimento
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -380,7 +380,7 @@ def update_deadline(
     """
     Atualiza um prazo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -407,7 +407,7 @@ def delete_deadline(
     """
     Deleta um prazo
     """
-    action = LegalActionService.get_by_id(db, action_id=action_id, user_id=current_user.id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
     if not action:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação não encontrada")
     
@@ -428,7 +428,7 @@ def get_pending_deadlines(
     """
     Retorna todos os prazos pendentes do usuário, ordenados por data
     """
-    deadlines = DeadlineService.get_pending_deadlines(db, user_id=current_user.id)
+    deadlines = DeadlineService.get_pending_deadlines(db, organization_id=current_user.organization_id)
     return deadlines
 
 
@@ -444,5 +444,5 @@ def get_overdue_deadlines(
     """
     Retorna todos os prazos vencidos do usuário
     """
-    deadlines = DeadlineService.get_overdue_deadlines(db, user_id=current_user.id)
+    deadlines = DeadlineService.get_overdue_deadlines(db, organization_id=current_user.organization_id)
     return deadlines

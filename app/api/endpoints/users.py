@@ -65,12 +65,12 @@ def list_users(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Lista todos os usuários (requer autenticação)
+    Lista todos os usuários da mesma organização (requer autenticação)
     
     - **skip**: Número de registros a pular (paginação)
     - **limit**: Número máximo de registros a retornar
     """
-    users = UserService.get_all(db, skip=skip, limit=limit)
+    users = UserService.get_all(db, organization_id=current_user.organization_id, skip=skip, limit=limit)
     return users
 
 
@@ -81,7 +81,7 @@ def get_user(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Busca um usuário específico por ID (requer autenticação)
+    Busca um usuário específico por ID da mesma organização (requer autenticação)
     
     - **user_id**: ID do usuário
     """
@@ -91,6 +91,13 @@ def get_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
+        )
+    
+    # Validar se o usuário pertence à mesma organização
+    if user.organization_id != current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar este usuário"
         )
     
     return user
@@ -106,11 +113,26 @@ def update_user(
     """
     Atualiza os dados de um usuário (requer autenticação)
     
-    Usuários só podem atualizar seus próprios dados
+    Usuários só podem atualizar seus próprios dados ou de usuários da mesma organização
     
     - **user_id**: ID do usuário
     - Campos atualizáveis: email, username, full_name, password, is_active
     """
+    # Buscar usuário alvo
+    target_user = UserService.get_by_id(db, user_id=user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Validar se pertence à mesma organização
+    if target_user.organization_id != current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para atualizar este usuário"
+        )
+    
     # Verificar se é o próprio usuário
     if current_user.id != user_id and not UserService.is_superuser(current_user):
         raise HTTPException(
@@ -160,10 +182,25 @@ def delete_user(
     """
     Deleta um usuário (requer autenticação)
     
-    Usuários só podem deletar seus próprios perfis
+    Usuários só podem deletar seus próprios perfis ou de usuários da mesma organização
     
     - **user_id**: ID do usuário
     """
+    # Buscar usuário alvo
+    target_user = UserService.get_by_id(db, user_id=user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Validar se pertence à mesma organização
+    if target_user.organization_id != current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para deletar este usuário"
+        )
+    
     # Verificar se é o próprio usuário
     if current_user.id != user_id and not UserService.is_superuser(current_user):
         raise HTTPException(

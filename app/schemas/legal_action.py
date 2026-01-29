@@ -206,7 +206,8 @@ class LegalActionResponse(LegalActionBase):
     """Schema de resposta para LegalAction"""
     id: int
     client_id: int
-    user_id: int
+    organization_id: int
+    user_id: Optional[int] = None
     closing_date: Optional[date] = None
     is_active: bool
     created_at: datetime

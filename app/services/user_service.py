@@ -27,9 +27,12 @@ class UserService:
         return db.query(User).filter(User.username == username).first()
     
     @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
-        """Lista todos os usuários com paginação"""
-        return db.query(User).offset(skip).limit(limit).all()
+    def get_all(db: Session, organization_id: int = None, skip: int = 0, limit: int = 100) -> List[User]:
+        """Lista todos os usuários com paginação (opcionalmente filtrados por organização)"""
+        query = db.query(User)
+        if organization_id:
+            query = query.filter(User.organization_id == organization_id)
+        return query.offset(skip).limit(limit).all()
     
     @staticmethod
     def create(db: Session, user_in: UserCreate) -> User:
@@ -50,6 +53,7 @@ class UserService:
             username=user_in.username,
             full_name=user_in.full_name,
             hashed_password=hashed_password,
+            organization_id=user_in.organization_id,
             is_active=True,
             is_superuser=False
         )

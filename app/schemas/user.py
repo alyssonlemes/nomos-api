@@ -17,6 +17,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema para criação de usuário"""
     password: str = Field(..., min_length=6, description="Senha com no mínimo 6 caracteres")
+    organization_id: int
 
 
 class UserUpdate(BaseModel):
@@ -39,6 +40,7 @@ class UserLogin(BaseModel):
 class UserResponse(UserBase):
     """Schema de resposta para User"""
     id: int
+    organization_id: int
     is_active: bool
     is_superuser: bool
     created_at: datetime

@@ -76,8 +76,12 @@ class LegalAction(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     client = relationship("Client", backref="legal_actions")
     
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Advogado responsável
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     user = relationship("User", backref="legal_actions")
+    
+    # Organização
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization = relationship("Organization", backref="legal_actions")
     
     # Tipo e status
     action_type = Column(Enum(LegalActionType), nullable=False)

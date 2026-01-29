@@ -32,14 +32,14 @@ def create_client(
     - **client_type**: Tipo (individual ou business)
     - **status**: Status inicial (prospect, active, etc)
     """
-    # Verificar se documento já existe
-    if ClientService.get_by_document(db, document=client_in.document, user_id=current_user.id):
+    # Verificar se documento já existe na organização
+    if ClientService.get_by_document(db, document=client_in.document, organization_id=current_user.organization_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cliente com este documento já cadastrado"
         )
     
-    client = ClientService.create(db=db, client_in=client_in, user_id=current_user.id)
+    client = ClientService.create(db=db, client_in=client_in, organization_id=current_user.organization_id, user_id=current_user.id)
     return client
 
 
@@ -57,7 +57,7 @@ def list_clients(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Lista todos os clientes do usuário logado
+    Lista todos os clientes da organização
     
     - **skip**: Paginação - registros a pular
     - **limit**: Paginação - máximo de registros
@@ -66,7 +66,7 @@ def list_clients(
     """
     clients, total = ClientService.get_all(
         db,
-        user_id=current_user.id,
+        organization_id=current_user.organization_id,
         skip=skip,
         limit=limit,
         status=status,
@@ -85,14 +85,14 @@ def get_statistics(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Retorna estatísticas dos clientes do usuário
+    Retorna estatísticas dos clientes da organização
     
     - Total de clientes
     - Clientes ativos
     - Prospects
     - Inativos
     """
-    stats = ClientService.get_statistics(db, user_id=current_user.id)
+    stats = ClientService.get_statistics(db, organization_id=current_user.organization_id)
     return stats
 
 
@@ -111,7 +111,7 @@ def get_client(
     
     - **client_id**: ID do cliente
     """
-    client = ClientService.get_by_id(db, client_id=client_id, user_id=current_user.id)
+    client = ClientService.get_by_id(db, client_id=client_id, organization_id=current_user.organization_id)
     
     if not client:
         raise HTTPException(
@@ -144,7 +144,7 @@ def update_client(
         existing_client = ClientService.get_by_document(
             db,
             document=client_in.document,
-            user_id=current_user.id
+            organization_id=current_user.organization_id
         )
         if existing_client and existing_client.id != client_id:
             raise HTTPException(
@@ -156,7 +156,7 @@ def update_client(
         db,
         client_id=client_id,
         client_in=client_in,
-        user_id=current_user.id
+        organization_id=current_user.organization_id
     )
     
     if not client:
@@ -183,7 +183,7 @@ def delete_client(
     
     - **client_id**: ID do cliente
     """
-    client = ClientService.delete(db, client_id=client_id, user_id=current_user.id)
+    client = ClientService.delete(db, client_id=client_id, organization_id=current_user.organization_id)
     
     if not client:
         raise HTTPException(
