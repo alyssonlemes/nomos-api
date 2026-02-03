@@ -12,9 +12,12 @@ class UserService:
     """
     
     @staticmethod
-    def get_by_id(db: Session, user_id: int) -> Optional[User]:
-        """Busca usuário por ID"""
-        return db.query(User).filter(User.id == user_id).first()
+    def get_by_id(db: Session, user_id: int, organization_id: int) -> Optional[User]:
+        """Busca usuário por ID (apenas da organização)"""
+        return db.query(User).filter(
+            User.id == user_id,
+            User.organization_id == organization_id
+        ).first()
     
     @staticmethod
     def get_by_email(db: Session, email: str) -> Optional[User]:
@@ -64,7 +67,7 @@ class UserService:
         return db_user
     
     @staticmethod
-    def update(db: Session, user_id: int, user_in: UserUpdate) -> Optional[User]:
+    def update(db: Session, user_id: int, user_in: UserUpdate, organization_id: int) -> Optional[User]:
         """
         Atualiza um usuário existente
         
@@ -72,11 +75,12 @@ class UserService:
             db: Sessão do banco de dados
             user_id: ID do usuário
             user_in: Dados para atualização
+            organization_id: ID da organização (validação de propriedade)
         
         Returns:
             Usuário atualizado ou None se não encontrado
         """
-        db_user = UserService.get_by_id(db, user_id)
+        db_user = UserService.get_by_id(db, user_id, organization_id)
         if not db_user:
             return None
         
@@ -95,18 +99,19 @@ class UserService:
         return db_user
     
     @staticmethod
-    def delete(db: Session, user_id: int) -> Optional[User]:
+    def delete(db: Session, user_id: int, organization_id: int) -> Optional[User]:
         """
         Deleta um usuário
         
         Args:
             db: Sessão do banco de dados
             user_id: ID do usuário
+            organization_id: ID da organização (validação de propriedade)
         
         Returns:
             Usuário deletado ou None se não encontrado
         """
-        db_user = UserService.get_by_id(db, user_id)
+        db_user = UserService.get_by_id(db, user_id, organization_id)
         if not db_user:
             return None
         

@@ -5,7 +5,8 @@ from app.core.config import settings
 from app.database import engine, Base
 from app.api import api_router
 
-# Criar tabelas no banco de dados
+# Criar todas as tabelas no banco de dados automaticamente
+# Isso lê todos os models e cria as tabelas se não existirem
 Base.metadata.create_all(bind=engine)
 
 # Criar aplicação FastAPI
