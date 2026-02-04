@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -16,6 +16,11 @@ class InvitationStatus(str, Enum):
 class Invitation(Base):
     """Modelo de Convite para organização"""
     __tablename__ = "invitations"
+    __table_args__ = (
+        UniqueConstraint('email', 'organization_id', 'status', name='uq_email_org_status'),
+        Index('idx_invitation_email_status', 'email', 'status'),
+        Index('idx_invitation_org_status', 'organization_id', 'status'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     
@@ -23,11 +28,11 @@ class Invitation(Base):
     email = Column(String, index=True, nullable=False)
     
     # Para qual organização
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     organization = relationship("Organization", backref="invitations")
     
     # Quem convidou
-    invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    invited_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     invited_by = relationship("User", foreign_keys=[invited_by_id], backref="invitations_sent")
     
     # Status do convite

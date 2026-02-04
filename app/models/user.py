@@ -20,8 +20,8 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     
     # Organização (opcional até criar uma)
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
-    organization = relationship("Organization", backref="users")
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
+    organization = relationship("Organization", foreign_keys=[organization_id], backref="users")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -337,7 +337,7 @@
       "_id": "req_invite_user",
       "_type": "request",
       "name": "1. Convidar Usuário",
-      "description": "Envia convite para usuário entrar na organização (apenas proprietário)",
+      "description": "Envia convite para usuário entrar na organização (apenas superusuários)",
       "url": "{{ _.base_url }}/invitations",
       "method": "POST",
       "headers": [
@@ -363,7 +363,7 @@
       "_id": "req_list_org_invitations",
       "_type": "request",
       "name": "2. Listar Convites da Organização",
-      "description": "Lista convites enviados pela organização (apenas proprietário)",
+      "description": "Lista convites enviados pela organização (apenas superusuários)",
       "url": "{{ _.base_url }}/invitations",
       "method": "GET",
       "headers": [

@@ -70,15 +70,6 @@ class LegalActionResponse(LegalActionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class LegalActionListResponse(BaseModel):
-    """Schema para lista de ações jurídicas"""
-    total: int
-    legal_actions: list[LegalActionResponse]
-
-    closing_date: Optional[date] = None
-    is_active: Optional[bool] = None
-
-
 class LegalActionResponse(LegalActionBase):
     """Schema de resposta para LegalAction"""
     id: int
@@ -91,13 +82,6 @@ class LegalActionResponse(LegalActionBase):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class LegalActionDetailResponse(LegalActionResponse):
-    """Schema detalhado de LegalAction com partes, movimentações e prazos"""
-    parties: list[PartyResponse] = []
-    movements: list[CaseMovementResponse] = []
-    deadlines: list[DeadlineResponse] = []
 
 
 class LegalActionListResponse(BaseModel):

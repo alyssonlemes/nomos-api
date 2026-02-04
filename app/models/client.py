@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -23,12 +23,16 @@ class ClientStatus(str, enum.Enum):
 class Client(Base):
     """Modelo de Cliente vinculado a uma Organização"""
     __tablename__ = "clients"
+    __table_args__ = (
+        UniqueConstraint('document', 'organization_id', name='uq_client_document_org'),
+        Index('idx_client_org_status', 'organization_id', 'status'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
     email = Column(String, index=True)
     phone = Column(String)
-    document = Column(String, index=True)
+    document = Column(String, index=True, nullable=False)
     client_type = Column(Enum(ClientType), default=ClientType.INDIVIDUAL, nullable=False)
     status = Column(Enum(ClientStatus), default=ClientStatus.PROSPECT, nullable=False)
     
@@ -42,11 +46,11 @@ class Client(Base):
     company_name = Column(String)  # Para pessoa jurídica
     
     # Organização (obrigatório)
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     organization = relationship("Organization", backref="clients")
     
     # Usuário responsável (opcional)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     user = relationship("User", backref="clients")
     
     # Metadados

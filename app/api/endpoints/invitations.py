@@ -9,7 +9,7 @@ from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
 from app.models.user import User
 from app.models.invitation import InvitationStatus
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, get_current_superuser
 
 router = APIRouter()
 
@@ -23,12 +23,12 @@ router = APIRouter()
 def invite_user(
     invite_in: InvitationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_superuser)
 ):
     """
     Convida um usuário para fazer parte da organização (por email)
     
-    Apenas o proprietário ou administrador pode convidar.
+    Apenas superusuários podem convidar.
     
     - **email**: Email do usuário a convidar
     """
@@ -39,12 +39,12 @@ def invite_user(
             detail="Você precisa ter uma organização para convidar usuários."
         )
     
-    # Verificar se é proprietário da organização
+    # Verificar se organização existe
     organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
-    if not organization or organization.owner_id != current_user.id:
+    if not organization:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas o proprietário da organização pode convidar usuários."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organização não encontrada."
         )
     
     # Verificar se já existe convite pendente
@@ -89,12 +89,12 @@ def list_organization_invitations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_superuser)
 ):
     """
     Lista todos os convites da organização
     
-    Apenas o proprietário pode listar convites.
+    Apenas superusuários podem listar convites.
     """
     # Verificar se usuário tem organização
     if not current_user.organization_id:
@@ -103,12 +103,12 @@ def list_organization_invitations(
             detail="Você precisa ter uma organização."
         )
     
-    # Verificar se é proprietário
+    # Verificar se organização existe
     organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
-    if not organization or organization.owner_id != current_user.id:
+    if not organization:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas o proprietário da organização pode listar convites."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organização não encontrada."
         )
     
     # Buscar convites

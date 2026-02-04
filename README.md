@@ -543,7 +543,7 @@ Sistema de convites para adicionar usuários a organizações existentes.
 
 ### 1. Convidar Usuário
 
-Convida um usuário (por email) para fazer parte da organização. **Apenas o proprietário** da organização pode enviar convites.
+Convida um usuário (por email) para fazer parte da organização. **Apenas superusuários** podem enviar convites.
 
 **Endpoint:** `POST /api/v1/invitations`
 
@@ -576,7 +576,7 @@ Authorization: Bearer <token_jwt>
 
 **Erros:**
 - `401` - Token inválido
-- `403` - Usuário não possui organização ou não é proprietário
+- `403` - Usuário não possui organização ou não é superusuário
 - `400` - Convite pendente já existe para este email
 - `400` - Usuário já faz parte da organização
 
@@ -584,7 +584,7 @@ Authorization: Bearer <token_jwt>
 
 ### 2. Listar Convites da Organização
 
-Lista todos os convites enviados pela organização. **Apenas o proprietário** pode listar.
+Lista todos os convites enviados pela organização. **Apenas superusuários** podem listar.
 
 **Endpoint:** `GET /api/v1/invitations?status=pending&skip=0&limit=100`
 
@@ -629,7 +629,7 @@ Authorization: Bearer <token_jwt>
 
 **Erros:**
 - `401` - Token inválido
-- `403` - Usuário não possui organização ou não é proprietário
+- `403` - Usuário não possui organização ou não é superusuário
 
 ---
 

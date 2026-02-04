@@ -11,11 +11,11 @@ class Organization(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
-    document = Column(String, unique=True, index=True)  # CNPJ
+    document = Column(String, unique=True, index=True, nullable=True)  # CNPJ - opcional
     
     # Proprietário (quem criou)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    owner = relationship("User", foreign_keys=[owner_id])
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    owner = relationship("User", foreign_keys=[owner_id], backref="owned_organization")
     
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

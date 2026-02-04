@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Date, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -35,6 +35,11 @@ class LegalAction(Base):
     Modelo de Ação Jurídica / Processo
     """
     __tablename__ = "legal_actions"
+    __table_args__ = (
+        Index('idx_legal_action_org_status', 'organization_id', 'legal_status'),
+        Index('idx_legal_action_client', 'client_id'),
+        Index('idx_legal_action_org_client', 'organization_id', 'client_id'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     
@@ -44,14 +49,14 @@ class LegalAction(Base):
     description = Column(Text)
     
     # Relacionamentos
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
     client = relationship("Client", backref="legal_actions")
     
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     user = relationship("User", backref="legal_actions")
     
     # Organização
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     organization = relationship("Organization", backref="legal_actions")
     
     # Tipo e status
