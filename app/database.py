@@ -18,6 +18,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base para os modelos
 Base = declarative_base()
 
+# Importar modelos para registrar as tabelas
+from app.models.user import User
+from app.models.organization import Organization
+from app.models.invitation import Invitation
+from app.models.client import Client
+from app.models.legal_action import LegalAction
+
 
 def get_db():
     """

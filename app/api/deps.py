@@ -99,3 +99,26 @@ def get_current_superuser(
             detail="Privilégios insuficientes"
         )
     return current_user
+
+
+def get_user_organization(
+    current_user: User = Depends(get_current_active_user)
+) -> int:
+    """
+    Dependency para garantir que o usuário tem uma organização
+    
+    Args:
+        current_user: Usuário ativo
+    
+    Returns:
+        ID da organização do usuário
+    
+    Raises:
+        HTTPException: Se o usuário não tiver uma organização
+    """
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização. Crie uma organização primeiro."
+        )
+    return current_user.organization_id

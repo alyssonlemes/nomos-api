@@ -19,8 +19,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     
-    # Organização
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    # Organização (opcional até criar uma)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     organization = relationship("Organization", backref="users")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

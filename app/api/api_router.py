@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router
+from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router, invitations_router
 
 api_router = APIRouter()
 
@@ -16,6 +16,13 @@ api_router.include_router(
     organizations_router,
     prefix="/organizations",
     tags=["Organizações"]
+)
+
+# Incluir rotas de convites
+api_router.include_router(
+    invitations_router,
+    prefix="/invitations",
+    tags=["Convites"]
 )
 
 # Incluir rotas de usuários

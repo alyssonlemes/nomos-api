@@ -1,12 +1,13 @@
 # Nomos API
 
-API REST moderna com arquitetura escalável, CRUD de usuários e autenticação JWT usando FastAPI.
+API REST moderna com arquitetura escalável para gerenciamento de organizações, usuários, clientes e ações jurídicas usando FastAPI.
 
 ## 🚀 Funcionalidades
 
 - ✅ Arquitetura limpa e escalável (Clean Architecture)
 - ✅ Autenticação JWT com tokens Bearer
-- ✅ CRUD completo de usuários
+- ✅ CRUD completo de usuários, organizações, clientes e ações jurídicas
+- ✅ Sistema de convites para organização
 - ✅ Hash de senhas com bcrypt
 - ✅ Validação de dados com Pydantic v2
 - ✅ Versionamento de API (v1)
@@ -14,6 +15,75 @@ API REST moderna com arquitetura escalável, CRUD de usuários e autenticação 
 - ✅ Documentação automática (Swagger/OpenAPI)
 - ✅ CORS configurável
 - ✅ Health check endpoint
+
+## 📊 Fluxo de Funcionamento
+
+A API segue um fluxo em **3 etapas principais**:
+
+### **Etapa 1: Registrar Conta** (SEM organização)
+```
+POST /api/v1/users/register
+{
+  "email": "user@example.com",
+  "username": "username",
+  "password": "senha123",
+  "full_name": "Nome Completo"
+}
+```
+- Cria uma nova conta de usuário
+- Usuário ainda NÃO está vinculado a nenhuma organização
+- Necessário para acessar o sistema
+
+### **Etapa 2A: Criar Organização** (Primeira opção)
+```
+POST /api/v1/auth/login
+{
+  "username": "username",
+  "password": "senha123"
+}
+```
+Após login com JWT token:
+```
+POST /api/v1/organizations
+{
+  "name": "Nome da Organização",
+  "document": "12.345.678/0001-00"
+}
+```
+- Cria uma nova organização
+- Usuário fica como proprietário (owner)
+- Usuário é vinculado automaticamente
+
+### **Etapa 2B: Aceitar Convite** (Segunda opção)
+```
+GET /api/v1/invitations/my-invitations
+```
+- Listar convites pendentes
+- Convites são criados pelo proprietário da organização
+
+```
+POST /api/v1/invitations/{invitation_id}/accept
+```
+- Aceitar convite e ser vinculado à organização
+
+### **Etapa 3: Acessar Outras Telas**
+Após ter organização criada:
+
+```
+# Gerenciar clientes
+GET /api/v1/clients
+POST /api/v1/clients
+GET /api/v1/clients/{client_id}
+
+# Gerenciar ações jurídicas
+GET /api/v1/legal-actions
+POST /api/v1/legal-actions
+GET /api/v1/legal-actions/{action_id}
+
+# Convidar novos usuários (apenas proprietário)
+POST /api/v1/invitations
+GET /api/v1/invitations
+```
 
 ## 📁 Estrutura do Projeto
 
@@ -31,23 +101,41 @@ nomos-api/
 │   │
 │   ├── models/                    # Modelos SQLAlchemy (ORM)
 │   │   ├── __init__.py
-│   │   └── user.py
+│   │   ├── user.py                # Usuário
+│   │   ├── organization.py        # Organização
+│   │   ├── invitation.py          # Convite para organização
+│   │   ├── client.py              # Cliente
+│   │   └── legal_action.py        # Ação Jurídica
 │   │
 │   ├── schemas/                   # Schemas Pydantic (validação)
 │   │   ├── __init__.py
-│   │   └── user.py
+│   │   ├── user.py
+│   │   ├── organization.py
+│   │   ├── invitation.py
+│   │   ├── client.py
+│   │   └── legal_action.py
 │   │
 │   ├── services/                  # Lógica de negócio
 │   │   ├── __init__.py
 │   │   ├── user_service.py
-│   │   └── auth_service.py
+│   │   ├── auth_service.py
+│   │   ├── organization_service.py
+│   │   ├── invitation_service.py
+│   │   ├── client_service.py
+│   │   └── legal_action_service.py
 │   │
 │   └── api/                       # Rotas e endpoints
 │       ├── __init__.py
+│       ├── api_router.py          # Router agregador
 │       ├── deps.py                # Dependencies (auth, db)
-│       └── v1/
+│       └── endpoints/
 │           ├── __init__.py
-│           ├── api.py             # Router agregador da v1
+│           ├── auth.py            # Autenticação
+│           ├── users.py           # Usuários
+│           ├── organizations.py   # Organizações
+│           ├── invitations.py     # Convites
+│           ├── clients.py         # Clientes
+│           └── legal_actions.py   # Ações Jurídicas
 │           └── endpoints/
 │               ├── __init__.py
 │               ├── auth.py        # Endpoints de autenticação

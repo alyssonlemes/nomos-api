@@ -17,20 +17,25 @@ router = APIRouter()
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Registrar novo usuário"
+    summary="Registrar novo usuário (sem organização)"
 )
 def register(
     user_in: UserCreate,
     db: Session = Depends(get_db)
 ):
     """
-    Cria um novo usuário no sistema em uma organização existente
+    Cria um novo usuário no sistema SEM organização obrigatória
+    
+    Esta é a primeira etapa do fluxo:
+    1. Criar conta aqui
+    2. Login
+    3. Depois criar/acessar organização
     
     - **email**: Email válido e único
     - **username**: Username único (3-50 caracteres)
     - **password**: Senha com no mínimo 6 caracteres
     - **full_name**: Nome completo (opcional)
-    - **organization_id**: ID da organização existente
+    - **organization_id**: ID da organização (opcional - pode criar depois)
     """
     # Verificar se email já existe
     if UserService.get_by_email(db, email=user_in.email):
@@ -46,13 +51,14 @@ def register(
             detail="Username já registrado"
         )
     
-    # Verificar se a organização existe
-    organization = OrganizationService.get_by_id(db, organization_id=user_in.organization_id)
-    if not organization:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organização não encontrada"
-        )
+    # Se organization_id foi fornecido, validar se existe
+    if user_in.organization_id:
+        organization = OrganizationService.get_by_id(db, organization_id=user_in.organization_id)
+        if not organization:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organização não encontrada"
+            )
     
     user = UserService.create(db=db, user_in=user_in)
     return user
@@ -143,9 +149,18 @@ def list_users(
     """
     Lista todos os usuários da mesma organização (requer autenticação)
     
+    Requer que o usuário tenha uma organização criada.
+    
     - **skip**: Número de registros a pular (paginação)
     - **limit**: Número máximo de registros a retornar
     """
+    # Verificar se usuário tem organização
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização para acessar outros usuários. Crie uma organização primeiro."
+        )
+    
     users = UserService.get_all(db, organization_id=current_user.organization_id, skip=skip, limit=limit)
     return users
 
@@ -159,8 +174,17 @@ def get_user(
     """
     Busca um usuário específico por ID da mesma organização (requer autenticação)
     
+    Requer que o usuário tenha uma organização criada.
+    
     - **user_id**: ID do usuário
     """
+    # Verificar se usuário tem organização
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização para acessar outros usuários. Crie uma organização primeiro."
+        )
+    
     user = UserService.get_by_id(db, user_id=user_id, organization_id=current_user.organization_id)
     
     if not user:
@@ -182,7 +206,8 @@ def update_user(
     """
     Atualiza os dados de um usuário (requer autenticação)
     
-    Usuários só podem atualizar seus próprios dados
+    Usuários só podem atualizar seus próprios dados.
+    Nota: Atualização de email, username e senha não requer organização.
     
     - **user_id**: ID do usuário
     - Campos atualizáveis: email, username, full_name, password, is_active
@@ -212,7 +237,8 @@ def update_user(
                 detail="Username já registrado"
             )
     
-    user = UserService.update(db, user_id=user_id, user_in=user_in, organization_id=current_user.organization_id)
+    # Para update do próprio usuário, organization_id pode ser None
+    user = UserService.update(db, user_id=user_id, user_in=user_in, organization_id=current_user.organization_id or 0)
     
     if not user:
         raise HTTPException(
@@ -236,7 +262,8 @@ def delete_user(
     """
     Deleta um usuário (requer autenticação)
     
-    Usuários só podem deletar seus próprios perfis
+    Usuários só podem deletar seus próprios perfis.
+    Nota: Pode deletar mesmo sem organização.
     
     - **user_id**: ID do usuário
     """
@@ -247,7 +274,8 @@ def delete_user(
             detail="Você só pode deletar seu próprio perfil"
         )
     
-    user = UserService.delete(db, user_id=user_id, organization_id=current_user.organization_id)
+    # Para delete do próprio usuário, organization_id pode ser None
+    user = UserService.delete(db, user_id=user_id, organization_id=current_user.organization_id or 0)
     
     if not user:
         raise HTTPException(

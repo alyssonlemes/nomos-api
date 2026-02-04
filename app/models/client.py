@@ -21,20 +21,14 @@ class ClientStatus(str, enum.Enum):
 
 
 class Client(Base):
-    """
-    Modelo de Cliente
-    """
+    """Modelo de Cliente vinculado a uma Organização"""
     __tablename__ = "clients"
 
     id = Column(Integer, primary_key=True, index=True)
-    
-    # Informações básicas
     name = Column(String, nullable=False, index=True)
     email = Column(String, index=True)
     phone = Column(String)
-    document = Column(String, unique=True, index=True)  # CPF ou CNPJ
-    
-    # Tipo e status
+    document = Column(String, index=True)
     client_type = Column(Enum(ClientType), default=ClientType.INDIVIDUAL, nullable=False)
     status = Column(Enum(ClientStatus), default=ClientStatus.PROSPECT, nullable=False)
     
@@ -45,19 +39,17 @@ class Client(Base):
     zip_code = Column(String)
     
     # Informações adicionais
-    notes = Column(Text)
     company_name = Column(String)  # Para pessoa jurídica
     
-    # Relacionamento com usuário (advogado responsável)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    user = relationship("User", backref="clients")
-    
-    # Organização
+    # Organização (obrigatório)
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     organization = relationship("Organization", backref="clients")
     
+    # Usuário responsável (opcional)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user = relationship("User", backref="clients")
+    
     # Metadados
-    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
