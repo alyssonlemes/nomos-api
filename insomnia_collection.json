@@ -1,0 +1,749 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-02-04T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_nomos_api",
+      "_type": "workspace",
+      "name": "Nomos API",
+      "description": "Testes completos da API - Usuários, Organizações, Clientes, Ações Jurídicas e Convites",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8000/api/v1",
+        "token": "",
+        "user_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": ["base_url", "token", "user_id"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1000000000000,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "folder_auth",
+      "_type": "request_group",
+      "name": "🔐 Autenticação",
+      "description": "Endpoints de login e autenticação",
+      "environment": {},
+      "metaSortKey": 1000,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_login",
+      "_type": "request",
+      "name": "Login",
+      "description": "Autentica um usuário e retorna token JWT",
+      "url": "{{ _.base_url }}/auth/login",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"usuario123\",\n  \"password\": \"senha123\"\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_auth"
+    },
+    {
+      "_id": "folder_users",
+      "_type": "request_group",
+      "name": "👤 Usuários",
+      "description": "Endpoints de gerenciamento de usuários",
+      "environment": {},
+      "metaSortKey": 2000,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_register",
+      "_type": "request",
+      "name": "1. Registrar Usuário (Sem Organização)",
+      "description": "Cria novo usuário sem organização obrigatória",
+      "url": "{{ _.base_url }}/users/register",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"usuario@example.com\",\n  \"username\": \"usuario123\",\n  \"password\": \"senha123\",\n  \"full_name\": \"Nome Completo do Usuário\",\n  \"organization_id\": null\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_register_with_org",
+      "_type": "request",
+      "name": "2. Registrar Usuário com Organização",
+      "description": "Cria usuário e organização simultaneamente",
+      "url": "{{ _.base_url }}/users/register-with-organization",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"advogado@escritorio.com\",\n  \"username\": \"advogado\",\n  \"password\": \"senha123\",\n  \"full_name\": \"Dr. Advogado Silva\",\n  \"organization_name\": \"Silva & Associados Advocacia\",\n  \"organization_document\": \"12.345.678/0001-99\"\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_get_me",
+      "_type": "request",
+      "name": "3. Obter Usuário Atual (Me)",
+      "description": "Retorna informações do usuário autenticado",
+      "url": "{{ _.base_url }}/users/me",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_list_users",
+      "_type": "request",
+      "name": "4. Listar Usuários da Organização",
+      "description": "Lista todos os usuários da mesma organização",
+      "url": "{{ _.base_url }}/users",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [
+        {
+          "name": "skip",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "100",
+          "disabled": false
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 4000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_get_user_by_id",
+      "_type": "request",
+      "name": "5. Buscar Usuário por ID",
+      "description": "Busca um usuário específico da mesma organização",
+      "url": "{{ _.base_url }}/users/{{ _.user_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 5000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_update_user",
+      "_type": "request",
+      "name": "6. Atualizar Usuário",
+      "description": "Atualiza dados do usuário (apenas próprio perfil)",
+      "url": "{{ _.base_url }}/users/{{ _.user_id }}",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"novoemail@example.com\",\n  \"username\": \"novousername\",\n  \"full_name\": \"Novo Nome Completo\",\n  \"password\": \"novasenha123\",\n  \"is_active\": true\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 6000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "req_delete_user",
+      "_type": "request",
+      "name": "7. Deletar Usuário",
+      "description": "Deleta um usuário (apenas próprio perfil)",
+      "url": "{{ _.base_url }}/users/{{ _.user_id }}",
+      "method": "DELETE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 7000,
+      "parentId": "folder_users"
+    },
+    {
+      "_id": "folder_organizations",
+      "_type": "request_group",
+      "name": "🏢 Organizações",
+      "description": "Endpoints de gerenciamento de organizações",
+      "environment": {},
+      "metaSortKey": 2500,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_create_organization",
+      "_type": "request",
+      "name": "1. Criar Organização",
+      "description": "Cria nova organização e vincula ao usuário autenticado",
+      "url": "{{ _.base_url }}/organizations",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Silva & Associados Advocacia\",\n  \"document\": \"12.345.678/0001-99\"\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_get_my_organization",
+      "_type": "request",
+      "name": "2. Obter Minha Organização",
+      "description": "Retorna a organização do usuário autenticado",
+      "url": "{{ _.base_url }}/organizations",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_update_organization",
+      "_type": "request",
+      "name": "3. Atualizar Organização",
+      "description": "Atualiza dados da organização do usuário",
+      "url": "{{ _.base_url }}/organizations",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Silva Advocacia Ltda\",\n  \"document\": \"98.765.432/0001-11\",\n  \"is_active\": true\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "req_list_organization_users",
+      "_type": "request",
+      "name": "4. Listar Usuários da Organização",
+      "description": "Lista todos os membros da organização",
+      "url": "{{ _.base_url }}/organizations/users",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 4000,
+      "parentId": "folder_organizations"
+    },
+    {
+      "_id": "folder_invitations",
+      "_type": "request_group",
+      "name": "✉️ Convites",
+      "description": "Endpoints de gerenciamento de convites",
+      "environment": {},
+      "metaSortKey": 2700,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_invite_user",
+      "_type": "request",
+      "name": "1. Convidar Usuário",
+      "description": "Envia convite para usuário entrar na organização (apenas proprietário)",
+      "url": "{{ _.base_url }}/invitations",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"novomembro@example.com\"\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_invitations"
+    },
+    {
+      "_id": "req_list_org_invitations",
+      "_type": "request",
+      "name": "2. Listar Convites da Organização",
+      "description": "Lista convites enviados pela organização (apenas proprietário)",
+      "url": "{{ _.base_url }}/invitations",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "pending",
+          "disabled": true,
+          "description": "pending, accepted, rejected"
+        },
+        {
+          "name": "skip",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "100",
+          "disabled": false
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_invitations"
+    },
+    {
+      "_id": "req_list_my_invitations",
+      "_type": "request",
+      "name": "3. Listar Meus Convites Pendentes",
+      "description": "Lista convites recebidos pelo usuário autenticado",
+      "url": "{{ _.base_url }}/my-invitations",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [
+        {
+          "name": "skip",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "100",
+          "disabled": false
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_invitations"
+    },
+    {
+      "_id": "req_accept_invitation",
+      "_type": "request",
+      "name": "4. Aceitar Convite",
+      "description": "Aceita convite e vincula usuário à organização",
+      "url": "{{ _.base_url }}/invitations/1/accept",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 4000,
+      "parentId": "folder_invitations"
+    },
+    {
+      "_id": "req_reject_invitation",
+      "_type": "request",
+      "name": "5. Rejeitar Convite",
+      "description": "Rejeita um convite de organização",
+      "url": "{{ _.base_url }}/invitations/1/reject",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 5000,
+      "parentId": "folder_invitations"
+    },
+    {
+      "_id": "folder_clients",
+      "_type": "request_group",
+      "name": "👥 Clientes",
+      "description": "Endpoints de gerenciamento de clientes",
+      "environment": {},
+      "metaSortKey": 2800,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_create_client",
+      "_type": "request",
+      "name": "1. Criar Cliente",
+      "description": "Cria novo cliente vinculado à organização",
+      "url": "{{ _.base_url }}/clients",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João da Silva\",\n  \"email\": \"joao@example.com\",\n  \"phone\": \"(11) 98765-4321\",\n  \"document\": \"123.456.789-00\",\n  \"client_type\": \"individual\",\n  \"status\": \"prospect\",\n  \"address\": \"Rua das Flores, 123\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"zip_code\": \"01234-567\",\n  \"company_name\": null\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_list_clients",
+      "_type": "request",
+      "name": "2. Listar Clientes",
+      "description": "Lista todos os clientes da organização com paginação e busca",
+      "url": "{{ _.base_url }}/clients",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [
+        {
+          "name": "skip",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "100",
+          "disabled": false
+        },
+        {
+          "name": "search",
+          "value": "",
+          "disabled": true,
+          "description": "Buscar por nome, email ou documento"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_get_client",
+      "_type": "request",
+      "name": "3. Buscar Cliente por ID",
+      "description": "Busca um cliente específico da organização",
+      "url": "{{ _.base_url }}/clients/1",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_update_client",
+      "_type": "request",
+      "name": "4. Atualizar Cliente",
+      "description": "Atualiza dados de um cliente da organização",
+      "url": "{{ _.base_url }}/clients/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"João da Silva Souza\",\n  \"email\": \"joao.novo@example.com\",\n  \"phone\": \"(11) 99999-9999\",\n  \"document\": \"123.456.789-00\",\n  \"client_type\": \"individual\",\n  \"status\": \"active\"\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 4000,
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "req_delete_client",
+      "_type": "request",
+      "name": "5. Deletar Cliente",
+      "description": "Deleta um cliente da organização",
+      "url": "{{ _.base_url }}/clients/1",
+      "method": "DELETE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 5000,
+      "parentId": "folder_clients"
+    },
+    {
+      "_id": "folder_legal_actions",
+      "_type": "request_group",
+      "name": "⚖️ Ações Jurídicas",
+      "description": "Endpoints de gerenciamento de ações jurídicas",
+      "environment": {},
+      "metaSortKey": 2900,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_create_legal_action",
+      "_type": "request",
+      "name": "1. Criar Ação Jurídica",
+      "description": "Cria nova ação jurídica/processo vinculada à organização e cliente",
+      "url": "{{ _.base_url }}/legal-actions",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"number\": \"1234567-89.2026.8.26.0100\",\n  \"title\": \"Ação Trabalhista - Horas Extras\",\n  \"description\": \"Ação de cobrança de horas extras não pagas\",\n  \"action_type\": \"labor\",\n  \"legal_status\": \"pre_trial\",\n  \"court_name\": \"1ª Vara do Trabalho de São Paulo\",\n  \"filing_date\": \"2026-02-01\",\n  \"client_id\": 1\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_list_legal_actions",
+      "_type": "request",
+      "name": "2. Listar Ações Jurídicas",
+      "description": "Lista todas as ações jurídicas com filtros",
+      "url": "{{ _.base_url }}/legal-actions",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [
+        {
+          "name": "skip",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "100",
+          "disabled": false
+        },
+        {
+          "name": "legal_status",
+          "value": "",
+          "disabled": true,
+          "description": "pre_trial, filing, litigation, execution, appeal, finalized, archived"
+        },
+        {
+          "name": "client_id",
+          "value": "",
+          "disabled": true,
+          "description": "ID do cliente"
+        },
+        {
+          "name": "search",
+          "value": "",
+          "disabled": true,
+          "description": "Buscar por número ou título"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_get_legal_action",
+      "_type": "request",
+      "name": "3. Buscar Ação Jurídica por ID",
+      "description": "Busca uma ação jurídica específica",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_update_legal_action",
+      "_type": "request",
+      "name": "4. Atualizar Ação Jurídica",
+      "description": "Atualiza dados de uma ação jurídica",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Ação Trabalhista - Horas Extras e Adicionais\",\n  \"description\": \"Ação de cobrança de horas extras e adicional noturno\",\n  \"action_type\": \"labor\",\n  \"legal_status\": \"litigation\",\n  \"court_name\": \"1ª Vara do Trabalho de São Paulo\",\n  \"filing_date\": \"2026-02-01\",\n  \"closing_date\": null\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 4000,
+      "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "req_delete_legal_action",
+      "_type": "request",
+      "name": "5. Deletar Ação Jurídica",
+      "description": "Deleta uma ação jurídica",
+      "url": "{{ _.base_url }}/legal-actions/1",
+      "method": "DELETE",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 5000,
+      "parentId": "folder_legal_actions"
+    }
+  ]
+}
