@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router, invitations_router
+from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router, invitations_router, jurimetria_batch_router, jurimetria_prediction_router, ml_router
 
 api_router = APIRouter()
 
@@ -44,4 +44,24 @@ api_router.include_router(
     legal_actions_router,
     prefix="/legal-actions",
     tags=["Ações Jurídicas"]
+)
+
+# Incluir rotas de jurimetria
+api_router.include_router(
+    jurimetria_batch_router,
+    prefix="/jurimetria",
+    tags=["Jurimetria"]
+)
+
+api_router.include_router(
+    jurimetria_prediction_router,
+    prefix="/jurimetria",
+    tags=["Jurimetria"]
+)
+
+# Incluir rotas de ML
+api_router.include_router(
+    ml_router,
+    prefix="/ml",
+    tags=["Machine Learning"]
 )

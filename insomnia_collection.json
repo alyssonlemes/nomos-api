@@ -744,6 +744,79 @@
       "authentication": {},
       "metaSortKey": 5000,
       "parentId": "folder_legal_actions"
+    },
+    {
+      "_id": "folder_jurimetria",
+      "_type": "request_group",
+      "name": "⚖️ Jurimetria",
+      "description": "Endpoints de jurimetria (batch, previsão e treino)",
+      "environment": {},
+      "metaSortKey": 3200,
+      "parentId": "wrk_nomos_api"
+    },
+    {
+      "_id": "req_jurimetria_batch",
+      "_type": "request",
+      "name": "1. Jurimetria Batch - Tempo Tramitação",
+      "description": "Executa coleta em lote no DataJud e persiste no banco",
+      "url": "{{ _.base_url }}/jurimetria/batch/tempo-tramitacao",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tribunal_alias\": \"tjsp\",\n  \"data_inicio\": \"2023-01-01\",\n  \"data_fim\": \"2023-12-31\",\n  \"classe_processual\": \"Procedimento Comum\",\n  \"assunto_codigo\": \"10010\",\n  \"size\": 100\n}"
+      },
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 1000,
+      "parentId": "folder_jurimetria"
+    },
+    {
+      "_id": "req_jurimetria_predict",
+      "_type": "request",
+      "name": "2. Jurimetria - Previsão Tempo",
+      "description": "Consulta DataJud e retorna previsão do tempo de tramitação",
+      "url": "{{ _.base_url }}/jurimetria/previsao-tempo/tjsp/0000000-00.2023.8.26.0000",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 2000,
+      "parentId": "folder_jurimetria"
+    },
+    {
+      "_id": "req_ml_train",
+      "_type": "request",
+      "name": "3. ML - Treinar Modelo",
+      "description": "Executa o pipeline de treino e registra o modelo ativo",
+      "url": "{{ _.base_url }}/ml/train",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {},
+      "parameters": [],
+      "authentication": {},
+      "metaSortKey": 3000,
+      "parentId": "folder_jurimetria"
     }
   ]
 }

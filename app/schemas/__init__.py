@@ -8,6 +8,8 @@ from app.schemas.user import (
     Token,
     TokenData
 )
+from app.schemas.jurimetria_batch import BatchFiltroRequest, ProcessoBatchResult, BatchResponse
+from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
 
 __all__ = [
     "UserBase",
@@ -17,5 +19,9 @@ __all__ = [
     "UserResponse",
     "UserInDB",
     "Token",
-    "TokenData"
+    "TokenData",
+    "BatchFiltroRequest",
+    "ProcessoBatchResult",
+    "BatchResponse",
+    "JurimetriaPredictionResponse"
 ]
