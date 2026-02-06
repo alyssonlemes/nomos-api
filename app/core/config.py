@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/nomos"
+
+    # DataJud
+    DATAJUD_API_KEY: Optional[str] = None
     
     # CORS
     BACKEND_CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8080"]
