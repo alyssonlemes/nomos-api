@@ -21,14 +21,14 @@ class AuthService:
         
         Args:
             db: Sessão do banco de dados
-            login_data: Dados de login (username e password)
+            login_data: Dados de login (email e password)
         
         Returns:
             Usuário autenticado ou None
         """
         return UserService.authenticate(
             db=db,
-            username=login_data.username,
+            email=login_data.email,
             password=login_data.password
         )
     
@@ -45,7 +45,7 @@ class AuthService:
         """
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            subject=user.username,
+            subject=user.email,
             expires_delta=access_token_expires
         )
         return access_token

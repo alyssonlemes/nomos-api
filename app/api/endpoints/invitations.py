@@ -128,7 +128,7 @@ def list_organization_invitations(
             "email": inv.email,
             "organization_id": inv.organization_id,
             "organization_name": organization.name,
-            "invited_by_username": inv.invited_by.username if inv.invited_by else None,
+            "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
             "created_at": inv.created_at,
             "updated_at": inv.updated_at
@@ -165,7 +165,7 @@ def list_my_invitations(
             "email": inv.email,
             "organization_id": inv.organization_id,
             "organization_name": org.name if org else None,
-            "invited_by_username": inv.invited_by.username if inv.invited_by else None,
+            "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
             "created_at": inv.created_at,
             "updated_at": inv.updated_at

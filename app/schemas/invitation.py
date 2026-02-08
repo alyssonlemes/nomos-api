@@ -49,7 +49,7 @@ class InvitationDetailResponse(InvitationBase):
     id: int
     organization_id: int
     organization_name: Optional[str] = None
-    invited_by_username: Optional[str] = None
+    invited_by_email: Optional[str] = None
     status: InvitationStatus
     created_at: datetime
     updated_at: Optional[datetime] = None

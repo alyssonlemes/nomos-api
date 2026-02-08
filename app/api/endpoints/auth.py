@@ -16,7 +16,7 @@ def login(
     """
     Autentica um usuário e retorna um token JWT
     
-    - **username**: Username do usuário
+    - **email**: Email do usuário
     - **password**: Senha do usuário
     """
     user = AuthService.authenticate_user(db, login_data)
@@ -24,7 +24,7 @@ def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username ou senha incorretos",
+            detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     

@@ -8,7 +8,6 @@ from datetime import datetime
 class UserBase(BaseModel):
     """Schema base para User"""
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50)
     full_name: Optional[str] = None
 
 
@@ -30,7 +29,6 @@ class UserRegisterWithOrg(UserBase):
 class UserUpdate(BaseModel):
     """Schema para atualização de usuário"""
     email: Optional[EmailStr] = None
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
     full_name: Optional[str] = None
     password: Optional[str] = Field(None, min_length=6)
     is_active: Optional[bool] = None
@@ -38,7 +36,7 @@ class UserUpdate(BaseModel):
 
 class UserLogin(BaseModel):
     """Schema para login"""
-    username: str = Field(..., description="Username do usuário")
+    email: EmailStr = Field(..., description="Email do usuário")
     password: str = Field(..., description="Senha do usuário")
 
 
@@ -71,4 +69,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Schema dos dados contidos no token"""
-    username: Optional[str] = None
+    email: Optional[str] = None

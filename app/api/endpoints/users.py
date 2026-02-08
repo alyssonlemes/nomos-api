@@ -32,7 +32,6 @@ def register(
     3. Depois criar/acessar organização
     
     - **email**: Email válido e único
-    - **username**: Username único (3-50 caracteres)
     - **password**: Senha com no mínimo 6 caracteres
     - **full_name**: Nome completo (opcional)
     - **organization_id**: ID da organização (opcional - pode criar depois)
@@ -42,13 +41,6 @@ def register(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email já registrado"
-        )
-    
-    # Verificar se username já existe
-    if UserService.get_by_username(db, username=user_in.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username já registrado"
         )
     
     # Se organization_id foi fornecido, validar se existe
@@ -80,7 +72,6 @@ def register_with_organization(
     Ideal para o primeiro usuário de um novo escritório
     
     - **email**: Email válido e único
-    - **username**: Username único (3-50 caracteres)
     - **password**: Senha com no mínimo 6 caracteres
     - **full_name**: Nome completo (opcional)
     - **organization_name**: Nome da nova organização/escritório
@@ -91,13 +82,6 @@ def register_with_organization(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email já registrado"
-        )
-    
-    # Verificar se username já existe
-    if UserService.get_by_username(db, username=user_in.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username já registrado"
         )
     
     # Verificar se documento da organização já existe
@@ -119,7 +103,6 @@ def register_with_organization(
     # Criar usuário vinculado à nova organização
     user_data = UserCreate(
         email=user_in.email,
-        username=user_in.username,
         password=user_in.password,
         full_name=user_in.full_name,
         organization_id=organization.id
@@ -207,10 +190,10 @@ def update_user(
     Atualiza os dados de um usuário (requer autenticação)
     
     Usuários só podem atualizar seus próprios dados.
-    Nota: Atualização de email, username e senha não requer organização.
+    Nota: Atualização de email e senha não requer organização.
     
     - **user_id**: ID do usuário
-    - Campos atualizáveis: email, username, full_name, password, is_active
+    - Campos atualizáveis: email, full_name, password, is_active
     """
     # Verificar se é o próprio usuário
     if current_user.id != user_id and not UserService.is_superuser(current_user):
@@ -226,15 +209,6 @@ def update_user(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email já registrado"
-            )
-    
-    # Verificar se username já existe (se foi fornecido)
-    if user_in.username:
-        existing_user = UserService.get_by_username(db, username=user_in.username)
-        if existing_user and existing_user.id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username já registrado"
             )
     
     # Para update do próprio usuário, organization_id pode ser None

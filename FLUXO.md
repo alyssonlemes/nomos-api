@@ -22,7 +22,7 @@ O sistema opera em **3 etapas principais**:
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. Registrar Usuário                                        │
 │    POST /api/v1/users/register                              │
-│    • Email, username, password                              │
+│    • Email, password                                        │
 │    • organization_id: null (ainda não tem)                  │
 └────────────────┬────────────────────────────────────────────┘
                  │
@@ -57,7 +57,7 @@ O sistema opera em **3 etapas principais**:
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. Registrar Usuário + Organização                          │
 │    POST /api/v1/users/register-with-organization            │
-│    • Email, username, password                              │
+│    • Email, password                                        │
 │    • organization_name, organization_document               │
 │    • Cria usuário E organização simultaneamente             │
 └────────────────┬────────────────────────────────────────────┘
@@ -227,7 +227,7 @@ O sistema opera em **3 etapas principais**:
 ## 📌 Regras de Negócio
 
 ### Usuários
-- ✅ Email e username devem ser únicos no sistema
+- ✅ Email deve ser único no sistema
 - ✅ Usuário pode estar em **apenas uma** organização
 - ✅ Pode criar conta sem organização
 - ✅ Pode aceitar convite para entrar em organização existente
@@ -266,7 +266,6 @@ O sistema opera em **3 etapas principais**:
 POST /api/v1/users/register-with-organization
 {
   "email": "advogado@escritorio.com",
-  "username": "advogado",
   "password": "senha123",
   "full_name": "Dr. Advogado Silva",
   "organization_name": "Silva & Associados",
@@ -276,7 +275,7 @@ POST /api/v1/users/register-with-organization
 # 2. Login
 POST /api/v1/auth/login
 {
-  "username": "advogado",
+  "email": "advogado@escritorio.com",
   "password": "senha123"
 }
 # Retorna: { "access_token": "eyJhbG..." }

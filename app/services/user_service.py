@@ -25,11 +25,6 @@ class UserService:
         return db.query(User).filter(User.email == email).first()
     
     @staticmethod
-    def get_by_username(db: Session, username: str) -> Optional[User]:
-        """Busca usuário por username"""
-        return db.query(User).filter(User.username == username).first()
-    
-    @staticmethod
     def get_all(db: Session, organization_id: int = None, skip: int = 0, limit: int = 100) -> List[User]:
         """Lista todos os usuários com paginação (opcionalmente filtrados por organização)"""
         query = db.query(User)
@@ -53,7 +48,6 @@ class UserService:
         
         db_user = User(
             email=user_in.email,
-            username=user_in.username,
             full_name=user_in.full_name,
             hashed_password=hashed_password,
             organization_id=user_in.organization_id,
@@ -120,19 +114,19 @@ class UserService:
         return db_user
     
     @staticmethod
-    def authenticate(db: Session, username: str, password: str) -> Optional[User]:
+    def authenticate(db: Session, email: str, password: str) -> Optional[User]:
         """
         Autentica um usuário
         
         Args:
             db: Sessão do banco de dados
-            username: Username do usuário
+            email: Email do usuário
             password: Senha em texto plano
         
         Returns:
             Usuário autenticado ou None se credenciais inválidas
         """
-        user = UserService.get_by_username(db, username)
+        user = UserService.get_by_email(db, email)
         if not user:
             return None
         if not verify_password(password, user.hashed_password):

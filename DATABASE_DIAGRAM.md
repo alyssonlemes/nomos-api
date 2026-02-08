@@ -17,7 +17,6 @@
 Table users {
   id integer [primary key, increment]
   email varchar [unique, not null]
-  username varchar [unique, not null]
   hashed_password varchar [not null]
   full_name varchar
   is_active boolean [default: true]
@@ -28,7 +27,6 @@ Table users {
   
   indexes {
     email
-    username
     organization_id
   }
 }

@@ -34,7 +34,6 @@ Cria uma nova conta de usuário **sem** organização obrigatória. Ideal para p
 ```json
 {
   "email": "usuario@example.com",
-  "username": "usuario123",
   "password": "senha123",
   "full_name": "Nome Completo",
   "organization_id": null
@@ -43,7 +42,6 @@ Cria uma nova conta de usuário **sem** organização obrigatória. Ideal para p
 
 **Campos:**
 - `email` (obrigatório) - Email válido e único
-- `username` (obrigatório) - Username único (3-50 caracteres)
 - `password` (obrigatório) - Senha com no mínimo 6 caracteres
 - `full_name` (opcional) - Nome completo do usuário
 - `organization_id` (opcional) - ID de organização existente (pode ser definido depois)
@@ -53,7 +51,6 @@ Cria uma nova conta de usuário **sem** organização obrigatória. Ideal para p
 {
   "id": 1,
   "email": "usuario@example.com",
-  "username": "usuario123",
   "full_name": "Nome Completo",
   "organization_id": null,
   "is_active": true,
@@ -64,7 +61,7 @@ Cria uma nova conta de usuário **sem** organização obrigatória. Ideal para p
 ```
 
 **Erros:**
-- `400` - Email ou username já registrado
+- `400` - Email já registrado
 - `404` - Organização não encontrada (se organization_id fornecido)
 
 ---
@@ -79,7 +76,6 @@ Cria um novo usuário **E** uma nova organização simultaneamente. Ideal para o
 ```json
 {
   "email": "advogado@escritorio.com",
-  "username": "advogado",
   "password": "senha123",
   "full_name": "Dr. Advogado Silva",
   "organization_name": "Silva & Associados Advocacia",
@@ -89,7 +85,6 @@ Cria um novo usuário **E** uma nova organização simultaneamente. Ideal para o
 
 **Campos:**
 - `email` (obrigatório) - Email válido e único
-- `username` (obrigatório) - Username único (3-50 caracteres)
 - `password` (obrigatório) - Senha com no mínimo 6 caracteres
 - `full_name` (opcional) - Nome completo
 - `organization_name` (obrigatório) - Nome da organização/escritório (3-200 caracteres)
@@ -100,7 +95,6 @@ Cria um novo usuário **E** uma nova organização simultaneamente. Ideal para o
 {
   "id": 1,
   "email": "advogado@escritorio.com",
-  "username": "advogado",
   "full_name": "Dr. Advogado Silva",
   "organization_id": 1,
   "is_active": true,
@@ -111,7 +105,7 @@ Cria um novo usuário **E** uma nova organização simultaneamente. Ideal para o
 ```
 
 **Erros:**
-- `400` - Email, username ou documento da organização já existem
+- `400` - Email ou documento da organização já existem
 
 ---
 
@@ -131,7 +125,6 @@ Authorization: Bearer <token_jwt>
 {
   "id": 1,
   "email": "usuario@example.com",
-  "username": "usuario123",
   "full_name": "Nome Completo",
   "organization_id": 1,
   "is_active": true,
@@ -168,7 +161,6 @@ Authorization: Bearer <token_jwt>
   {
     "id": 1,
     "email": "usuario1@example.com",
-    "username": "usuario1",
     "full_name": "Usuário Um",
     "organization_id": 1,
     "is_active": true,
@@ -179,7 +171,6 @@ Authorization: Bearer <token_jwt>
   {
     "id": 2,
     "email": "usuario2@example.com",
-    "username": "usuario2",
     "full_name": "Usuário Dois",
     "organization_id": 1,
     "is_active": true,
@@ -215,7 +206,6 @@ Authorization: Bearer <token_jwt>
 {
   "id": 2,
   "email": "usuario2@example.com",
-  "username": "usuario2",
   "full_name": "Usuário Dois",
   "organization_id": 1,
   "is_active": true,
@@ -250,7 +240,6 @@ Authorization: Bearer <token_jwt>
 ```json
 {
   "email": "novoemail@example.com",
-  "username": "novousername",
   "full_name": "Novo Nome Completo",
   "password": "novasenha123",
   "is_active": true
@@ -259,7 +248,6 @@ Authorization: Bearer <token_jwt>
 
 **Campos (todos opcionais):**
 - `email` - Novo email
-- `username` - Novo username (3-50 caracteres)
 - `full_name` - Novo nome completo
 - `password` - Nova senha (mínimo 6 caracteres)
 - `is_active` - Status ativo/inativo
@@ -269,7 +257,6 @@ Authorization: Bearer <token_jwt>
 {
   "id": 1,
   "email": "novoemail@example.com",
-  "username": "novousername",
   "full_name": "Novo Nome Completo",
   "organization_id": 1,
   "is_active": true,
@@ -282,7 +269,7 @@ Authorization: Bearer <token_jwt>
 **Erros:**
 - `401` - Token inválido
 - `403` - Tentativa de atualizar outro usuário
-- `400` - Email ou username já existe
+- `400` - Email já existe
 - `404` - Usuário não encontrado
 
 ---
@@ -324,7 +311,7 @@ Autentica um usuário e retorna um token JWT.
 **Body:**
 ```json
 {
-  "username": "usuario123",
+  "email": "usuario@example.com",
   "password": "senha123"
 }
 ```
@@ -338,7 +325,7 @@ Autentica um usuário e retorna um token JWT.
 ```
 
 **Erros:**
-- `401` - Username ou senha incorretos
+- `401` - Email ou senha incorretos
 
 **Como usar o token:**
 ```
@@ -509,7 +496,6 @@ Authorization: Bearer <token_jwt>
   {
     "id": 1,
     "email": "advogado@escritorio.com",
-    "username": "advogado",
     "full_name": "Dr. Advogado Silva",
     "organization_id": 1,
     "is_active": true,
@@ -520,7 +506,6 @@ Authorization: Bearer <token_jwt>
   {
     "id": 2,
     "email": "secretaria@escritorio.com",
-    "username": "secretaria",
     "full_name": "Maria Secretária",
     "organization_id": 1,
     "is_active": true,
@@ -608,7 +593,7 @@ Authorization: Bearer <token_jwt>
       "email": "novomembro@example.com",
       "organization_id": 1,
       "organization_name": "Silva & Associados Advocacia",
-      "invited_by_username": "advogado",
+      "invited_by_email": "advogado@escritorio.com",
       "status": "pending",
       "created_at": "2026-02-04T10:30:00",
       "updated_at": null
@@ -618,7 +603,7 @@ Authorization: Bearer <token_jwt>
       "email": "outro@example.com",
       "organization_id": 1,
       "organization_name": "Silva & Associados Advocacia",
-      "invited_by_username": "advogado",
+      "invited_by_email": "advogado@escritorio.com",
       "status": "accepted",
       "created_at": "2026-02-04T09:00:00",
       "updated_at": "2026-02-04T09:30:00"
@@ -658,7 +643,7 @@ Authorization: Bearer <token_jwt>
       "email": "meu@email.com",
       "organization_id": 5,
       "organization_name": "Escritório XYZ Advogados",
-      "invited_by_username": "proprietario_xyz",
+      "invited_by_email": "proprietario@xyz.com",
       "status": "pending",
       "created_at": "2026-02-04T11:00:00",
       "updated_at": null

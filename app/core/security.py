@@ -14,7 +14,7 @@ def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] =
     Cria um token JWT
     
     Args:
-        subject: Identificador do usuário (geralmente username ou id)
+        subject: Identificador do usuário (email ou id)
         expires_delta: Tempo de expiração do token
     
     Returns:
