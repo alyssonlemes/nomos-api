@@ -1,5 +1,5 @@
 from typing import Any
-from jose import jwt, JWTError
+from jose import jwt, JWTError, ExpiredSignatureError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -27,14 +27,8 @@ def get_current_user(
         Usuário autenticado
     
     Raises:
-        HTTPException: Se o token for inválido ou o usuário não for encontrado
+        HTTPException: Se o token for inválido ou o usuário não ser encontrado
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Não foi possível validar as credenciais",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
     try:
         token = credentials.credentials
         payload = jwt.decode(
@@ -44,13 +38,31 @@ def get_current_user(
         )
         email: str = payload.get("sub")
         if email is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido: dados incompletos",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expirado. Faça login novamente.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido. Não foi possível validar as credenciais.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     user = UserService.get_by_email(db, email=email)
     if user is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário não encontrado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return user
 
@@ -122,3 +134,43 @@ def get_user_organization(
             detail="Você precisa ter uma organização. Crie uma organização primeiro."
         )
     return current_user.organization_id
+
+
+def get_admin_or_owner(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Dependency para garantir que o usuário é admin ou owner da organização
+    
+    Args:
+        current_user: Usuário ativo
+        db: Sessão do banco de dados
+    
+    Returns:
+        Usuário com permissões de admin/owner
+    
+    Raises:
+        HTTPException: Se o usuário não tiver permissões
+    """
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização."
+        )
+    
+    # Verificar se é admin ou owner
+    if current_user.role in ["admin", "owner"]:
+        return current_user
+    
+    # Verificar se é o owner da organização
+    from app.services.organization_service import OrganizationService
+    organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
+    
+    if organization and organization.owner_id == current_user.id:
+        return current_user
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Apenas administradores ou proprietários podem realizar esta ação."
+    )

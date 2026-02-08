@@ -7,5 +7,6 @@ from app.api.endpoints.invitations import router as invitations_router
 from app.api.endpoints.jurimetria_batch import router as jurimetria_batch_router
 from app.api.endpoints.jurimetria_prediction import router as jurimetria_prediction_router
 from app.api.endpoints.ml import router as ml_router
+from app.api.endpoints.dashboard import router as dashboard_router
 
-__all__ = ["auth_router", "users_router", "clients_router", "legal_actions_router", "organizations_router", "invitations_router", "jurimetria_batch_router", "jurimetria_prediction_router", "ml_router"]
+__all__ = ["auth_router", "users_router", "clients_router", "legal_actions_router", "organizations_router", "invitations_router", "jurimetria_batch_router", "jurimetria_prediction_router", "ml_router", "dashboard_router"]

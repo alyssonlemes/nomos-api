@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router, invitations_router, jurimetria_batch_router, jurimetria_prediction_router, ml_router
+from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, organizations_router, invitations_router, jurimetria_batch_router, jurimetria_prediction_router, ml_router, dashboard_router
 
 api_router = APIRouter()
 
@@ -9,6 +9,13 @@ api_router.include_router(
     auth_router,
     prefix="/auth",
     tags=["Autenticação"]
+)
+
+# Incluir rotas de dashboard
+api_router.include_router(
+    dashboard_router,
+    prefix="/dashboard",
+    tags=["Dashboard"]
 )
 
 # Incluir rotas de organizações

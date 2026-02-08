@@ -65,6 +65,8 @@ class Token(BaseModel):
     """Schema de resposta do token"""
     access_token: str
     token_type: str = "bearer"
+    expires_in: int  # segundos até expirar
+    expires_at: datetime  # timestamp de expiração
 
 
 class TokenData(BaseModel):

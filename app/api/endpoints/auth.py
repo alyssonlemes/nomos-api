@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.schemas.user import UserLogin, Token
 from app.services.auth_service import AuthService
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -30,7 +32,13 @@ def login(
     
     access_token = AuthService.create_token(user)
     
+    # Calcular tempo de expiração
+    expires_in_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "expires_in": expires_in_seconds,
+        "expires_at": expires_at
     }

@@ -17,6 +17,7 @@ class User(Base):
     full_name = Column(String)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
+    role = Column(String, nullable=True)  # Temporário, deve ser movido para relação user-organization
     
     # Organização (opcional até criar uma)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)

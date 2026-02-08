@@ -8,14 +8,14 @@ from app.services.invitation_service import InvitationService
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
 from app.models.user import User
-from app.models.invitation import InvitationStatus
-from app.api.deps import get_current_active_user, get_current_superuser
+from app.models.invitation import InvitationStatus, Invitation
+from app.api.deps import get_current_active_user, get_admin_or_owner
 
 router = APIRouter()
 
 
 @router.post(
-    "/invitations",
+    "",
     response_model=InvitationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Convidar usuário para organização"
@@ -23,12 +23,12 @@ router = APIRouter()
 def invite_user(
     invite_in: InvitationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_admin_or_owner)
 ):
     """
     Convida um usuário para fazer parte da organização (por email)
     
-    Apenas superusuários podem convidar.
+    Apenas administradores ou proprietários podem convidar.
     
     - **email**: Email do usuário a convidar
     """
@@ -80,7 +80,7 @@ def invite_user(
 
 
 @router.get(
-    "/invitations",
+    "",
     response_model=InvitationListResponse,
     summary="Listar convites da organização"
 )
@@ -89,12 +89,12 @@ def list_organization_invitations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_admin_or_owner)
 ):
     """
     Lista todos os convites da organização
     
-    Apenas superusuários podem listar convites.
+    Apenas administradores ou proprietários podem listar convites.
     """
     # Verificar se usuário tem organização
     if not current_user.organization_id:
@@ -175,7 +175,7 @@ def list_my_invitations(
 
 
 @router.post(
-    "/invitations/{invitation_id}/accept",
+    "/{invitation_id}/accept",
     response_model=InvitationResponse,
     summary="Aceitar convite"
 )
@@ -231,7 +231,7 @@ def accept_invitation(
 
 
 @router.post(
-    "/invitations/{invitation_id}/reject",
+    "/{invitation_id}/reject",
     response_model=InvitationResponse,
     summary="Rejeitar convite"
 )
