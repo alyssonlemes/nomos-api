@@ -45,6 +45,7 @@ class UserLogin(BaseModel):
 class UserResponse(UserBase):
     """Schema de resposta para User"""
     id: int
+    role: Optional[str] = None
     organization_id: Optional[int] = None
     is_active: bool
     is_superuser: bool

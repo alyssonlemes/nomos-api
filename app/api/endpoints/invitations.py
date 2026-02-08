@@ -1,6 +1,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from sqlalchemy.exc import DataError
 
 from app.database import get_db
 from app.schemas.invitation import InvitationCreate, InvitationResponse, InvitationDetailResponse, InvitationListResponse
@@ -73,7 +75,8 @@ def invite_user(
         db=db,
         email=invite_in.email,
         organization_id=current_user.organization_id,
-        invited_by_id=current_user.id
+        invited_by_id=current_user.id,
+        role=invite_in.role.value if hasattr(invite_in, 'role') and invite_in.role is not None else None
     )
     
     return invitation
@@ -127,6 +130,7 @@ def list_organization_invitations(
             "id": inv.id,
             "email": inv.email,
             "organization_id": inv.organization_id,
+            "role": inv.role,
             "organization_name": organization.name,
             "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
@@ -164,6 +168,7 @@ def list_my_invitations(
             "id": inv.id,
             "email": inv.email,
             "organization_id": inv.organization_id,
+            "role": inv.role,
             "organization_name": org.name if org else None,
             "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
@@ -223,9 +228,43 @@ def accept_invitation(
     invitation = InvitationService.accept(db=db, invitation_id=invitation_id)
     
     # Vincular usuário à organização
+    # Garantir que estamos usando a mesma sessão DB: anexar/mesclar o objeto `current_user`
+    current_user = db.merge(current_user)
     current_user.organization_id = invitation.organization_id
-    db.commit()
-    db.refresh(current_user)
+
+    # Atribuir role enviada no convite (não atribuir owner aqui)
+    if invitation.role:
+        current_user.role = invitation.role
+
+    # Tentar commitar; se houver incompatibilidade com um ENUM no Postgres,
+    # tentar mapear a label correta (case-insensitive) a partir de pg_enum.
+    try:
+        db.commit()
+        db.refresh(current_user)
+    except DataError:
+        db.rollback()
+        try:
+            # Obter labels do enum userrole no Postgres
+            res = db.execute(text("SELECT e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname = 'userrole'"))
+            labels = [r[0] for r in res.fetchall()]
+            match = next((lbl for lbl in labels if lbl.lower() == (invitation.role or "").lower()), None)
+            if match:
+                # Reaplicar organization_id após rollback antes de commitar novamente
+                current_user.organization_id = invitation.organization_id
+                current_user.role = match
+                db.add(current_user)
+                db.commit()
+                db.refresh(current_user)
+            else:
+                # Se não achar correspondência, limpar role e reaplicar organization_id
+                current_user.organization_id = invitation.organization_id
+                current_user.role = None
+                db.add(current_user)
+                db.commit()
+                db.refresh(current_user)
+        except Exception:
+            db.rollback()
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atribuir role compatível com o banco")
     
     return invitation
 

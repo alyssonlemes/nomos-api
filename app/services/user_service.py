@@ -2,6 +2,7 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
 
@@ -88,6 +89,43 @@ class UserService:
             setattr(db_user, field, value)
         
         db.add(db_user)  # Marca como modificado
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+
+    @staticmethod
+    def unlink_organization(db: Session, user_id: int, organization_id: Optional[int] = None) -> Optional[User]:
+        """
+        Remove a associação do usuário com a organização (seta organization_id para None).
+
+        Se `organization_id` for fornecido, valida que o usuário pertence àquela organização.
+        Se `organization_id` for None, busca pelo `user_id` sem filtrar por organização (útil para superusers).
+        """
+        if organization_id is None:
+            db_user = db.query(User).filter(User.id == user_id).first()
+        else:
+            db_user = UserService.get_by_id(db, user_id, organization_id)
+
+        if not db_user:
+            return None
+
+        # Determinar qual organização precisamos limpar (pode ser passada ou a atual do usuário)
+        org_to_clean = organization_id if organization_id is not None else db_user.organization_id
+
+        # Limpar convites pendentes/aceitos para este email na organização para evitar duplicidades
+        if org_to_clean is not None and db_user.email:
+            try:
+                db.query(Invitation).filter(
+                    Invitation.email == db_user.email,
+                    Invitation.organization_id == org_to_clean,
+                    Invitation.status.in_([InvitationStatus.PENDING, InvitationStatus.ACCEPTED])
+                ).delete(synchronize_session=False)
+            except Exception:
+                db.rollback()
+                raise
+
+        db_user.organization_id = None
+        db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user

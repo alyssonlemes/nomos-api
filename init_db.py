@@ -1,43 +1,38 @@
 """
-Script para verificar e inicializar o banco de dados com as tabelas corretas
+Script para verificar o estado do banco de dados e migrations Alembic
+IMPORTANTE: Este script NÃO cria tabelas. Use Alembic para gerenciar o schema.
 """
-from app.database import engine, Base
-from app.models import User, Organization, Invitation, Client, LegalAction
+from app.database import engine
+from sqlalchemy import text
 
-def create_tables():
+def check_alembic_version():
     """
-    Cria todas as tabelas no banco de dados
+    Verifica se o Alembic está inicializado e qual a versão atual
     """
-    print("🔍 Verificando estrutura do banco de dados...")
-    print("📋 Modelos registrados:")
-    print(f"  - User")
-    print(f"  - Organization")
-    print(f"  - Invitation")
-    print(f"  - Client")
-    print(f"  - LegalAction")
+    from sqlalchemy import inspect
     
-    print("\n🔨 Criando tabelas (se não existirem)...")
-    Base.metadata.create_all(bind=engine)
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
     
-    print("\n✅ Banco de dados inicializado com sucesso!")
-    print("\n📊 Tabelas criadas:")
-    for table_name in Base.metadata.tables.keys():
-        print(f"  - {table_name}")
+    print("🔍 Verificando status do Alembic...")
     
-    print("\n🔐 Constraints e índices aplicados:")
-    for table_name, table in Base.metadata.tables.items():
-        if table.constraints:
-            print(f"\n  {table_name}:")
-            for constraint in table.constraints:
-                constraint_type = type(constraint).__name__
-                if hasattr(constraint, 'name') and constraint.name:
-                    print(f"    - {constraint_type}: {constraint.name}")
+    if 'alembic_version' not in existing_tables:
+        print("  ❌ Tabela 'alembic_version' não encontrada")
+        print("\n💡 Para inicializar o banco, execute:")
+        print("     alembic upgrade head")
+        return False
+    
+    # Verificar versão atual
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT version_num FROM alembic_version"))
+        version = result.scalar()
         
-        if table.indexes:
-            for index in table.indexes:
-                if index.name:
-                    columns = ', '.join([col.name for col in index.columns])
-                    print(f"    - Index: {index.name} ({columns})")
+        if version:
+            print(f"  ✅ Alembic inicializado (versão: {version})")
+            return True
+        else:
+            print("  ⚠️  Alembic configurado mas sem versão aplicada")
+            return False
 
 def verify_tables():
     """
@@ -118,21 +113,32 @@ def check_constraints():
 if __name__ == "__main__":
     import sys
     
-    print("=" * 60)
-    print("   NOMOS API - Database Initialization")
-    print("=" * 60)
+    print("=" * 70)
+    print("   NOMOS API - Database Status Check")
+    print("=" * 70)
+    print("\n⚠️  Este script apenas VERIFICA o banco. Não cria tabelas.")
+    print("   Use Alembic para gerenciar migrations.\n")
     
     try:
-        if len(sys.argv) > 1 and sys.argv[1] == "--verify":
-            verify_tables()
-            check_constraints()
+        check_alembic_version()
+        print()
+        all_tables_exist = verify_tables()
+        check_constraints()
+        
+        print("\n" + "=" * 70)
+        
+        if not all_tables_exist:
+            print("\n📝 Comandos úteis do Alembic:")
+            print("   alembic upgrade head        # Aplicar todas as migrations")
+            print("   alembic downgrade -1        # Reverter última migration")
+            print("   alembic current             # Ver versão atual")
+            print("   alembic history             # Ver histórico de migrations")
+            print("   alembic revision --autogenerate -m 'description'  # Criar nova migration")
         else:
-            create_tables()
-            print("\n" + "=" * 60)
-            verify_tables()
-            check_constraints()
-            print("=" * 60)
-            print("\n💡 Dica: Execute 'python init_db.py --verify' para verificar sem criar tabelas")
+            print("\n✅ Banco de dados está configurado corretamente!")
+        
+        print("=" * 70)
+        
     except Exception as e:
         print(f"\n❌ Erro: {e}")
         import traceback

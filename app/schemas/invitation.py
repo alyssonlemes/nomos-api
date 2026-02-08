@@ -11,6 +11,13 @@ class InvitationStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class InvitationRole(str, Enum):
+    """Papéis possíveis para um convite"""
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
 # ========== Base Schemas ==========
 
 class InvitationBase(BaseModel):
@@ -22,7 +29,7 @@ class InvitationBase(BaseModel):
 
 class InvitationCreate(InvitationBase):
     """Schema para criar convite"""
-    pass
+    role: InvitationRole = Field(InvitationRole.MEMBER, description="Papel que será atribuído ao usuário ao aceitar")
 
 
 class InvitationAccept(BaseModel):
@@ -36,6 +43,7 @@ class InvitationResponse(InvitationBase):
     """Schema de resposta para Invitation"""
     id: int
     organization_id: int
+    role: Optional[InvitationRole] = None
     status: InvitationStatus
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -48,6 +56,7 @@ class InvitationDetailResponse(InvitationBase):
     """Schema detalhado de Invitation com informações da organização"""
     id: int
     organization_id: int
+    role: Optional[InvitationRole] = None
     organization_name: Optional[str] = None
     invited_by_email: Optional[str] = None
     status: InvitationStatus

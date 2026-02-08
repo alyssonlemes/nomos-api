@@ -159,8 +159,8 @@ def get_admin_or_owner(
             detail="Você precisa ter uma organização."
         )
     
-    # Verificar se é admin ou owner
-    if current_user.role in ["admin", "owner"]:
+    # Verificar se é admin ou owner (case-insensitive)
+    if (current_user.role or "").lower() in ["admin", "owner"]:
         return current_user
     
     # Verificar se é o owner da organização

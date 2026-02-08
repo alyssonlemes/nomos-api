@@ -8,8 +8,66 @@ API para gerenciamento de escritórios de advocacia, incluindo gestão de usuár
 - **FastAPI** - Framework web moderno e rápido
 - **SQLAlchemy** - ORM para banco de dados
 - **PostgreSQL** - Banco de dados relacional
+- **Alembic** - Gerenciamento de migrations
 - **JWT** - Autenticação via tokens
 - **Pydantic** - Validação de dados
+
+## ⚙️ Setup e Configuração
+
+### 1. Instalar Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Configurar Variáveis de Ambiente
+
+Configure o arquivo `.env` com as credenciais do banco de dados:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/nomos_db
+SECRET_KEY=your-secret-key-here
+```
+
+### 3. Aplicar Migrations com Alembic
+
+**IMPORTANTE:** Esta API usa Alembic para gerenciar o schema do banco de dados.
+
+```bash
+# Aplicar todas as migrations
+alembic upgrade head
+
+# Verificar o status do banco
+python init_db.py
+```
+
+### 4. Comandos Úteis do Alembic
+
+```bash
+# Ver versão atual das migrations
+alembic current
+
+# Ver histórico de migrations
+alembic history
+
+# Criar uma nova migration (após alterar modelos)
+alembic revision --autogenerate -m "descrição da mudança"
+
+# Aplicar próxima migration
+alembic upgrade +1
+
+# Reverter última migration
+alembic downgrade -1
+
+# Ir para uma revisão específica
+alembic upgrade <revision_id>
+```
+
+### 5. Iniciar Servidor
+
+```bash
+uvicorn app.main:app --reload
+```
 
 ## 📋 Fluxo da Aplicação
 

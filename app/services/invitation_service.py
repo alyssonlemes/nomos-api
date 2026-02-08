@@ -7,13 +7,34 @@ class InvitationService:
     """Service para operações com convites"""
     
     @staticmethod
-    def create(db: Session, email: str, organization_id: int, invited_by_id: int) -> Invitation:
+    def create(db: Session, email: str, organization_id: int, invited_by_id: int, role: str = None) -> Invitation:
         """Cria um novo convite"""
+        # Se já existe um convite aceito para esse email e organização, não criar outro
+        existing_accepted = db.query(Invitation).filter(
+            Invitation.email == email,
+            Invitation.organization_id == organization_id,
+            Invitation.status == InvitationStatus.ACCEPTED
+        ).first()
+
+        if existing_accepted:
+            raise ValueError("User already accepted an invitation for this organization")
+
+        # Se já existe um convite pendente, retorne-o em vez de criar duplicado
+        existing_pending = db.query(Invitation).filter(
+            Invitation.email == email,
+            Invitation.organization_id == organization_id,
+            Invitation.status == InvitationStatus.PENDING
+        ).first()
+
+        if existing_pending:
+            return existing_pending
+
         invitation = Invitation(
             email=email,
             organization_id=organization_id,
             invited_by_id=invited_by_id,
-            status=InvitationStatus.PENDING
+            status=InvitationStatus.PENDING,
+            role=role
         )
         db.add(invitation)
         db.commit()
@@ -47,12 +68,12 @@ class InvitationService:
     def accept(db: Session, invitation_id: int) -> Invitation:
         """Aceita um convite"""
         invitation = db.query(Invitation).filter(Invitation.id == invitation_id).first()
-        
+
         if invitation:
             invitation.status = InvitationStatus.ACCEPTED
             db.commit()
             db.refresh(invitation)
-        
+
         return invitation
     
     @staticmethod

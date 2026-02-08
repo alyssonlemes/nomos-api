@@ -223,6 +223,54 @@ def update_user(
     return user
 
 
+@router.post(
+    "/{user_id}/unlink-organization",
+    response_model=UserResponse,
+    summary="Desvincular usuário da organização"
+)
+def unlink_organization(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Desvincula o usuário da organização definindo `organization_id` como None.
+
+    Usuários só podem desvincular seus próprios perfis, a menos que sejam superuser.
+    """
+    # Buscar usuário alvo (sem filtragem por organização para checar permissões)
+    target_user = db.query(User).filter(User.id == user_id).first()
+
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+
+    # Permissões: o próprio usuário, superuser, ou admin/owner da mesma organização
+    if current_user.id == user_id:
+        org_param = current_user.organization_id
+    elif UserService.is_superuser(current_user):
+        org_param = None
+    elif (current_user.role or "").lower() in ["admin", "owner"] and target_user.organization_id == current_user.organization_id:
+        org_param = current_user.organization_id
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para desvincular este usuário"
+        )
+
+    user = UserService.unlink_organization(db=db, user_id=user_id, organization_id=org_param)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+
+    return user
+
+
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Date, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Date, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -36,6 +36,7 @@ class LegalAction(Base):
     """
     __tablename__ = "legal_actions"
     __table_args__ = (
+        UniqueConstraint('organization_id', 'number', name='uq_legal_actions_org_number'),
         Index('idx_legal_action_org_status', 'organization_id', 'legal_status'),
         Index('idx_legal_action_client', 'client_id'),
         Index('idx_legal_action_org_client', 'organization_id', 'client_id'),
@@ -44,7 +45,7 @@ class LegalAction(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Informações básicas
-    number = Column(String, unique=True, index=True, nullable=False)  # Número do processo
+    number = Column(String, index=True, nullable=False)  # Número do processo
     title = Column(String, nullable=False, index=True)
     description = Column(Text)
     
