@@ -31,7 +31,7 @@ def create_legal_action(
     
     - **number**: Número único do processo
     - **title**: Título da ação
-    - **action_type**: Tipo (civil, trabalhista, criminal, etc)
+    - **action_type_id**: ID do tipo de ação (listar em GET /legal-action-types)
     - **client_id**: ID do cliente envolvido
     """
     # Verificar se usuário tem organização
@@ -49,6 +49,11 @@ def create_legal_action(
         )
     
     action = LegalActionService.create(db=db, action_in=action_in, organization_id=current_user.organization_id, user_id=current_user.id)
+    if not action:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de ação jurídica (action_type_id) inválido ou não encontrado",
+        )
     return action
 
 
@@ -143,19 +148,23 @@ def update_legal_action(
             detail="Você precisa ter uma organização."
         )
     
-    action = LegalActionService.update(
-        db,
-        action_id=action_id,
-        action_in=action_in,
-        organization_id=current_user.organization_id
-    )
-    
+    try:
+        action = LegalActionService.update(
+            db,
+            action_id=action_id,
+            action_in=action_in,
+            organization_id=current_user.organization_id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ação jurídica não encontrada"
+            detail="Ação jurídica não encontrada",
         )
-    
     return action
 
 

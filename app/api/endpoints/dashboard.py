@@ -8,6 +8,7 @@ from app.schemas.dashboard import DashboardStats
 from app.models.user import User
 from app.models.client import Client
 from app.models.legal_action import LegalAction
+from app.models.legal_action_type import LegalActionType
 from app.api.deps import get_current_active_user, get_user_organization
 
 router = APIRouter()
@@ -60,15 +61,15 @@ def get_dashboard_stats(
     
     actions_by_status = {status: count for status, count in actions_by_status_query}
     
-    # Ações por tipo
-    actions_by_type_query = db.query(
-        LegalAction.action_type,
-        func.count(LegalAction.id)
-    ).filter(
-        LegalAction.organization_id == organization_id
-    ).group_by(LegalAction.action_type).all()
-    
-    actions_by_type = {action_type: count for action_type, count in actions_by_type_query}
+    # Ações por tipo (nome do tipo do catálogo)
+    actions_by_type_query = (
+        db.query(LegalActionType.name, func.count(LegalAction.id))
+        .join(LegalAction, LegalAction.action_type_id == LegalActionType.id)
+        .filter(LegalAction.organization_id == organization_id)
+        .group_by(LegalActionType.id, LegalActionType.name)
+        .all()
+    )
+    actions_by_type = {name: count for name, count in actions_by_type_query}
     
     # Clientes por status
     clients_by_status_query = db.query(

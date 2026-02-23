@@ -6,19 +6,6 @@ import enum
 from app.database import Base
 
 
-class LegalActionType(str, enum.Enum):
-    """Tipos de ações jurídicas"""
-    LABOR = "labor"              # Trabalhista
-    CIVIL = "civil"              # Cível
-    CRIMINAL = "criminal"        # Criminal
-    ADMINISTRATIVE = "admin"     # Administrativa
-    TAX = "tax"                  # Tributária
-    COMMERCIAL = "commercial"    # Comercial
-    FAMILY = "family"            # Família
-    REAL_ESTATE = "real_estate"  # Imóvel
-    OTHER = "other"              # Outra
-
-
 class LegalStatus(str, enum.Enum):
     """Status jurídico do processo"""
     PRE_TRIAL = "pre_trial"          # Pré-processual
@@ -61,7 +48,8 @@ class LegalAction(Base):
     organization = relationship("Organization", backref="legal_actions")
     
     # Tipo e status
-    action_type = Column(Enum(LegalActionType), nullable=False)
+    action_type_id = Column(Integer, ForeignKey("legal_action_types.id", ondelete="RESTRICT"), nullable=False)
+    action_type = relationship("LegalActionType", back_populates="legal_actions")
     legal_status = Column(Enum(LegalStatus), default=LegalStatus.PRE_TRIAL, nullable=False)
     
     # Tribunal (opcional)

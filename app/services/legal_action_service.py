@@ -1,8 +1,9 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.models.legal_action import LegalAction, LegalStatus
+from app.models.legal_action_type import LegalActionType
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
 
 
@@ -14,10 +15,15 @@ class LegalActionService:
     @staticmethod
     def get_by_id(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
         """Busca ação jurídica por ID (apenas da organização)"""
-        return db.query(LegalAction).filter(
-            LegalAction.id == action_id,
-            LegalAction.organization_id == organization_id
-        ).first()
+        return (
+            db.query(LegalAction)
+            .options(joinedload(LegalAction.action_type))
+            .filter(
+                LegalAction.id == action_id,
+                LegalAction.organization_id == organization_id,
+            )
+            .first()
+        )
     
     @staticmethod
     def get_by_number(db: Session, number: str, organization_id: int) -> Optional[LegalAction]:
@@ -56,12 +62,21 @@ class LegalActionService:
             )
         
         total = query.count()
-        actions = query.offset(skip).limit(limit).all()
+        actions = (
+            query.options(joinedload(LegalAction.action_type))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return actions, total
     
     @staticmethod
     def create(db: Session, action_in: LegalActionCreate, organization_id: int, user_id: Optional[int] = None) -> LegalAction:
-        """Cria uma nova ação jurídica vinculada à organização"""
+        """Cria uma nova ação jurídica vinculada à organização."""
+        # Garantir que o tipo existe
+        action_type = db.query(LegalActionType).filter(LegalActionType.id == action_in.action_type_id).first()
+        if not action_type:
+            return None  # caller should raise 400
         db_action = LegalAction(
             number=action_in.number,
             title=action_in.title,
@@ -69,17 +84,17 @@ class LegalActionService:
             client_id=action_in.client_id,
             organization_id=organization_id,
             user_id=user_id,
-            action_type=action_in.action_type,
+            action_type_id=action_in.action_type_id,
             legal_status=action_in.legal_status,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
-            is_active=True
+            is_active=True,
         )
         
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
-        return db_action
+        return LegalActionService.get_by_id(db, db_action.id, organization_id)
     
     @staticmethod
     def update(
@@ -94,14 +109,16 @@ class LegalActionService:
             return None
         
         update_data = action_in.model_dump(exclude_unset=True)
-        
+        if "action_type_id" in update_data:
+            if not db.query(LegalActionType).filter(LegalActionType.id == update_data["action_type_id"]).first():
+                raise ValueError("Tipo de ação jurídica não encontrado")
         for field, value in update_data.items():
             setattr(db_action, field, value)
         
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
-        return db_action
+        return LegalActionService.get_by_id(db, action_id, organization_id)
     
     @staticmethod
     def delete(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
