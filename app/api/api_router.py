@@ -1,6 +1,19 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth_router, users_router, clients_router, legal_actions_router, legal_action_types_router, organizations_router, invitations_router, jurimetria_batch_router, jurimetria_prediction_router, ml_router, dashboard_router
+from app.api.endpoints import (
+    auth_router,
+    users_router,
+    clients_router,
+    legal_actions_router,
+    legal_action_types_router,
+    legal_action_statuses_router,
+    organizations_router,
+    invitations_router,
+    jurimetria_batch_router,
+    jurimetria_prediction_router,
+    ml_router,
+    dashboard_router,
+)
 
 api_router = APIRouter()
 
@@ -8,74 +21,81 @@ api_router = APIRouter()
 api_router.include_router(
     auth_router,
     prefix="/auth",
-    tags=["Autenticação"]
+    tags=["Autenticação"],
 )
 
 # Incluir rotas de dashboard
 api_router.include_router(
     dashboard_router,
     prefix="/dashboard",
-    tags=["Dashboard"]
+    tags=["Dashboard"],
 )
 
 # Incluir rotas de organizações
 api_router.include_router(
     organizations_router,
     prefix="/organizations",
-    tags=["Organizações"]
+    tags=["Organizações"],
 )
 
 # Incluir rotas de convites
 api_router.include_router(
     invitations_router,
     prefix="/invitations",
-    tags=["Convites"]
+    tags=["Convites"],
 )
 
 # Incluir rotas de usuários
 api_router.include_router(
     users_router,
     prefix="/users",
-    tags=["Usuários"]
+    tags=["Usuários"],
 )
 
 # Incluir rotas de clientes
 api_router.include_router(
     clients_router,
     prefix="/clients",
-    tags=["Clientes"]
+    tags=["Clientes"],
 )
 
 # Incluir rotas de ações jurídicas
 api_router.include_router(
     legal_actions_router,
     prefix="/legal-actions",
-    tags=["Ações Jurídicas"]
+    tags=["Ações Jurídicas"],
 )
 
 # Incluir rotas de tipos de ação jurídica (catálogo)
 api_router.include_router(
     legal_action_types_router,
     prefix="/legal-action-types",
-    tags=["Tipos de Ação Jurídica"]
+    tags=["Tipos de Ação Jurídica"],
+)
+
+# Incluir rotas de status de ação jurídica (catálogo)
+api_router.include_router(
+    legal_action_statuses_router,
+    prefix="/legal-action-statuses",
+    tags=["Status de Ação Jurídica"],
 )
 
 # Incluir rotas de jurimetria
 api_router.include_router(
     jurimetria_batch_router,
     prefix="/jurimetria",
-    tags=["Jurimetria"]
+    tags=["Jurimetria"],
 )
 
 api_router.include_router(
     jurimetria_prediction_router,
     prefix="/jurimetria",
-    tags=["Jurimetria"]
+    tags=["Jurimetria"],
 )
 
 # Incluir rotas de ML
 api_router.include_router(
     ml_router,
     prefix="/ml",
-    tags=["Machine Learning"]
+    tags=["Machine Learning"],
 )

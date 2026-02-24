@@ -9,7 +9,7 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_size=10,
-    max_overflow=20
+    max_overflow=20,
 )
 
 # Criar sessão
@@ -19,13 +19,14 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Importar modelos para registrar as tabelas
-from app.models.user import User
-from app.models.organization import Organization
-from app.models.invitation import Invitation
-from app.models.client import Client
-from app.models.legal_action import LegalAction
-from app.models.legal_action_type import LegalActionType
-from app.models.jurimetria_dataset import JurimetriaDataset
+from app.models.user import User  # noqa: F401,E402
+from app.models.organization import Organization  # noqa: F401,E402
+from app.models.invitation import Invitation  # noqa: F401,E402
+from app.models.client import Client  # noqa: F401,E402
+from app.models.legal_action import LegalAction  # noqa: F401,E402
+from app.models.legal_action_type import LegalActionType  # noqa: F401,E402
+from app.models.legal_action_status import LegalActionStatus  # noqa: F401,E402
+from app.models.jurimetria_dataset import JurimetriaDataset  # noqa: F401,E402
 
 
 def get_db():

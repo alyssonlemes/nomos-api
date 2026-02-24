@@ -1,10 +1,14 @@
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.legal_action import (
-    LegalActionCreate, LegalActionUpdate, LegalActionResponse, LegalActionListResponse
+    LegalActionCreate,
+    LegalActionUpdate,
+    LegalActionResponse,
+    LegalActionListResponse,
 )
 from app.services.legal_action_service import LegalActionService
 from app.models.user import User
@@ -32,6 +36,7 @@ def create_legal_action(
     - **number**: Número único do processo
     - **title**: Título da ação
     - **action_type_id**: ID do tipo de ação (listar em GET /legal-action-types)
+    - **legal_status_id**: ID do status jurídico (listar em GET /legal-action-statuses). Se vazio, usa 'pre_trial'.
     - **client_id**: ID do cliente envolvido
     """
     # Verificar se usuário tem organização
@@ -65,7 +70,7 @@ def create_legal_action(
 def list_legal_actions(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    legal_status: Optional[str] = Query(None, description="Filtrar por status jurídico"),
+    legal_status_id: Optional[int] = Query(None, description="Filtrar por status jurídico (ID)"),
     client_id: Optional[int] = Query(None, description="Filtrar por cliente"),
     search: Optional[str] = Query(None, description="Buscar por número ou título"),
     db: Session = Depends(get_db),
@@ -88,9 +93,9 @@ def list_legal_actions(
         organization_id=current_user.organization_id,
         skip=skip,
         limit=limit,
-        legal_status=legal_status,
+        legal_status_id=legal_status_id,
         client_id=client_id,
-        search=search
+        search=search,
     )
     
     return LegalActionListResponse(total=total, legal_actions=actions)

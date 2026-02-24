@@ -2,8 +2,9 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
-from app.models.legal_action import LegalAction, LegalStatus
+from app.models.legal_action import LegalAction
 from app.models.legal_action_type import LegalActionType
+from app.models.legal_action_status import LegalActionStatus
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
 
 
@@ -39,15 +40,15 @@ class LegalActionService:
         organization_id: int,
         skip: int = 0,
         limit: int = 100,
-        legal_status: Optional[str] = None,
+        legal_status_id: Optional[int] = None,
         client_id: Optional[int] = None,
         search: Optional[str] = None
     ) -> Tuple[List[LegalAction], int]:
         """Lista todas as ações jurídicas da organização com filtros"""
         query = db.query(LegalAction).filter(LegalAction.organization_id == organization_id)
         
-        if legal_status:
-            query = query.filter(LegalAction.legal_status == legal_status)
+        if legal_status_id:
+            query = query.filter(LegalAction.legal_status_id == legal_status_id)
         
         if client_id:
             query = query.filter(LegalAction.client_id == client_id)
@@ -77,6 +78,18 @@ class LegalActionService:
         action_type = db.query(LegalActionType).filter(LegalActionType.id == action_in.action_type_id).first()
         if not action_type:
             return None  # caller should raise 400
+
+        # Status: se não vier, usar pre_trial por padrão
+        status_id = action_in.legal_status_id
+        if status_id is None:
+            default_status = db.query(LegalActionStatus).filter(LegalActionStatus.code == "pre_trial").first()
+            if not default_status:
+                raise ValueError("Status jurídico padrão 'pre_trial' não encontrado")
+            status_id = default_status.id
+        else:
+            if not db.query(LegalActionStatus).filter(LegalActionStatus.id == status_id).first():
+                raise ValueError("Status jurídico não encontrado")
+
         db_action = LegalAction(
             number=action_in.number,
             title=action_in.title,
@@ -85,7 +98,7 @@ class LegalActionService:
             organization_id=organization_id,
             user_id=user_id,
             action_type_id=action_in.action_type_id,
-            legal_status=action_in.legal_status,
+            legal_status_id=status_id,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
             is_active=True,
@@ -109,9 +122,19 @@ class LegalActionService:
             return None
         
         update_data = action_in.model_dump(exclude_unset=True)
+
         if "action_type_id" in update_data:
-            if not db.query(LegalActionType).filter(LegalActionType.id == update_data["action_type_id"]).first():
+            if not db.query(LegalActionType).filter(
+                LegalActionType.id == update_data["action_type_id"]
+            ).first():
                 raise ValueError("Tipo de ação jurídica não encontrado")
+
+        if "legal_status_id" in update_data:
+            if not db.query(LegalActionStatus).filter(
+                LegalActionStatus.id == update_data["legal_status_id"]
+            ).first():
+                raise ValueError("Status jurídico não encontrado")
+
         for field, value in update_data.items():
             setattr(db_action, field, value)
         

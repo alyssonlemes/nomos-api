@@ -1,20 +1,9 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Date, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Date, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
 
 from app.database import Base
-
-
-class LegalStatus(str, enum.Enum):
-    """Status jurídico do processo"""
-    PRE_TRIAL = "pre_trial"          # Pré-processual
-    FILING = "filing"                # Ajuizamento
-    LITIGATION = "litigation"        # Contencioso
-    EXECUTION = "execution"          # Execução
-    APPEAL = "appeal"                # Recurso
-    FINALIZED = "finalized"          # Finalizado
-    ARCHIVED = "archived"            # Arquivado
 
 
 class LegalAction(Base):
@@ -24,7 +13,7 @@ class LegalAction(Base):
     __tablename__ = "legal_actions"
     __table_args__ = (
         UniqueConstraint('organization_id', 'number', name='uq_legal_actions_org_number'),
-        Index('idx_legal_action_org_status', 'organization_id', 'legal_status'),
+        Index('idx_legal_action_org_status', 'organization_id', 'legal_status_id'),
         Index('idx_legal_action_client', 'client_id'),
         Index('idx_legal_action_org_client', 'organization_id', 'client_id'),
     )
@@ -50,7 +39,13 @@ class LegalAction(Base):
     # Tipo e status
     action_type_id = Column(Integer, ForeignKey("legal_action_types.id", ondelete="RESTRICT"), nullable=False)
     action_type = relationship("LegalActionType", back_populates="legal_actions")
-    legal_status = Column(Enum(LegalStatus), default=LegalStatus.PRE_TRIAL, nullable=False)
+
+    legal_status_id = Column(
+        Integer,
+        ForeignKey("legal_action_statuses.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    legal_status = relationship("LegalActionStatus", back_populates="legal_actions")
     
     # Tribunal (opcional)
     court_name = Column(String)

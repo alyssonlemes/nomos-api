@@ -1,22 +1,9 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime, date
-from enum import Enum
 
 from app.schemas.legal_action_type import LegalActionTypeResponse
-
-
-# ========== Enums ==========
-
-class LegalStatus(str, Enum):
-    """Status jurídico do processo"""
-    PRE_TRIAL = "pre_trial"
-    FILING = "filing"
-    LITIGATION = "litigation"
-    EXECUTION = "execution"
-    APPEAL = "appeal"
-    FINALIZED = "finalized"
-    ARCHIVED = "archived"
+from app.schemas.legal_action_status import LegalActionStatusResponse
 
 
 # ========== LegalAction Schemas ==========
@@ -27,7 +14,10 @@ class LegalActionBase(BaseModel):
     title: str = Field(..., min_length=3, description="Título da ação")
     description: Optional[str] = None
     action_type_id: int = Field(..., description="ID do tipo de ação (catálogo legal_action_types)")
-    legal_status: LegalStatus = LegalStatus.PRE_TRIAL
+    legal_status_id: Optional[int] = Field(
+        None,
+        description="ID do status jurídico (catálogo legal_action_statuses). Se vazio, usa 'pre_trial'.",
+    )
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
 
@@ -42,7 +32,7 @@ class LegalActionUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3)
     description: Optional[str] = None
     action_type_id: Optional[int] = None
-    legal_status: Optional[LegalStatus] = None
+    legal_status_id: Optional[int] = None
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None
@@ -56,7 +46,8 @@ class LegalActionResponse(BaseModel):
     description: Optional[str] = None
     action_type_id: int
     action_type: Optional[LegalActionTypeResponse] = None
-    legal_status: LegalStatus
+    legal_status_id: int
+    legal_status: Optional[LegalActionStatusResponse] = None
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None
