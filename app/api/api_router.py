@@ -9,10 +9,10 @@ from app.api.endpoints import (
     legal_action_statuses_router,
     organizations_router,
     invitations_router,
-    jurimetria_batch_router,
     jurimetria_prediction_router,
     ml_router,
     dashboard_router,
+    datajud_integration_router,
 )
 
 api_router = APIRouter()
@@ -80,13 +80,6 @@ api_router.include_router(
     tags=["Status de Ação Jurídica"],
 )
 
-# Incluir rotas de jurimetria
-api_router.include_router(
-    jurimetria_batch_router,
-    prefix="/jurimetria",
-    tags=["Jurimetria"],
-)
-
 api_router.include_router(
     jurimetria_prediction_router,
     prefix="/jurimetria",
@@ -98,4 +91,11 @@ api_router.include_router(
     ml_router,
     prefix="/ml",
     tags=["Machine Learning"],
+)
+
+# Etapa 1 - Integração DataJud
+api_router.include_router(
+    datajud_integration_router,
+    prefix="/integracao/datajud",
+    tags=["Integração DataJud"],
 )

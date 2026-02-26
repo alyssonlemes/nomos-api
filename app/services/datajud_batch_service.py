@@ -1,5 +1,4 @@
 import json
-import os
 import time
 import urllib.error
 import urllib.request
@@ -8,6 +7,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.jurimetria_dataset import JurimetriaDataset
 from app.schemas.jurimetria_batch import BatchFiltroRequest, BatchResponse, ProcessoBatchResult
 
@@ -19,15 +19,16 @@ class DataJudBatchService:
 
     RATE_LIMIT_SECONDS = 0.5
     REQUEST_TIMEOUT_SECONDS = 30
+    MAX_RESULT_WINDOW = 10_000
 
     @staticmethod
     def run_batch(db: Session, filtros: BatchFiltroRequest) -> BatchResponse:
-        api_key = os.getenv("DATAJUD_API_KEY")
+        api_key = settings.DATAJUD_API_KEY
         if not api_key:
             raise ValueError("DATAJUD_API_KEY não configurada no ambiente")
 
         base_url = f"https://api-publica.datajud.cnj.jus.br/api_publica_{filtros.tribunal_alias}/_search"
-        size = filtros.size or 100
+        requested_size = filtros.size or 100
         offset = 0
 
         total_processos = 0
@@ -35,7 +36,18 @@ class DataJudBatchService:
         resultados: List[ProcessoBatchResult] = []
 
         while True:
-            payload = DataJudBatchService._build_query(filtros=filtros, size=size, offset=offset)
+            # Respeitar limite de janela de resultados do DataJud (from + size <= 10_000)
+            if offset >= DataJudBatchService.MAX_RESULT_WINDOW:
+                break
+
+            remaining_window = DataJudBatchService.MAX_RESULT_WINDOW - offset
+            page_size = min(requested_size, remaining_window)
+
+            payload = DataJudBatchService._build_query(
+                filtros=filtros,
+                size=page_size,
+                offset=offset,
+            )
             response_data = DataJudBatchService._post_json(url=base_url, api_key=api_key, payload=payload)
 
             hits = response_data.get("hits", {}).get("hits", [])
@@ -51,7 +63,7 @@ class DataJudBatchService:
 
             DataJudBatchService._persist_page(db=db, filtros=filtros, dataset_rows=dataset_rows)
 
-            offset += size
+            offset += page_size
             if total_processos and offset >= total_processos:
                 break
 
