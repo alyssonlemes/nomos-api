@@ -174,3 +174,81 @@ def get_admin_or_owner(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Apenas administradores ou proprietários podem realizar esta ação."
     )
+
+
+def require_legal_actions_access(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Dependency para garantir que o usuário tem acesso a processos e jurimetria
+    Bloqueia usuários com role 'assistant'
+    
+    Args:
+        current_user: Usuário ativo
+    
+    Returns:
+        Usuário com permissões para acessar processos e jurimetria
+    
+    Raises:
+        HTTPException: Se o usuário for assistant
+    """
+    user_role = (current_user.role or "").lower()
+    
+    if user_role == "assistant":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assistentes não têm permissão para acessar processos e jurimetria."
+        )
+    
+    return current_user
+
+
+def require_write_access(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Dependency para garantir que o usuário pode criar, editar e deletar (ações de escrita)
+    Bloqueia usuários com role 'viewer' - apenas leitura
+    
+    Args:
+        current_user: Usuário ativo
+    
+    Returns:
+        Usuário com permissões de escrita
+    
+    Raises:
+        HTTPException: Se o usuário for viewer
+    """
+    user_role = (current_user.role or "").lower()
+    
+    if user_role == "viewer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Visualizadores apenas leem dados, não podem criar, editar ou deletar."
+        )
+    
+    return current_user
+
+def get_data_filter_user_id(
+    current_user: User = Depends(get_current_active_user)
+) -> int | None:
+    """
+    Dependency que retorna user_id para filtrar dados baseado na role
+    
+    - ADMIN/OWNER: Retorna None (veem todos os dados)
+    - MEMBER/VIEWER/ASSISTANT: Retorna user_id (veem apenas seus dados)
+    
+    Args:
+        current_user: Usuário ativo
+    
+    Returns:
+        user_id para filtrar, ou None se tiver acesso total
+    """
+    user_role = (current_user.role or "").lower()
+    
+    # Admin e owner veem tudo
+    if user_role in ["admin", "owner"]:
+        return None
+    
+    # Member, viewer e assistant veem apenas seus dados
+    return current_user.id

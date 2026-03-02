@@ -10,12 +10,24 @@ class ClientService:
     """Serviço para operações de cliente vinculados à organização"""
     
     @staticmethod
-    def get_by_id(db: Session, client_id: int, organization_id: int) -> Optional[Client]:
-        """Busca cliente por ID da organização"""
-        return db.query(Client).filter(
+    def get_by_id(db: Session, client_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[Client]:
+        """Busca cliente por ID da organização
+        
+        Args:
+            db: Sessão do banco
+            client_id: ID do cliente
+            organization_id: ID da organização
+            user_id: Se fornecido, filtra apenas clientes criados por este usuário
+        """
+        query = db.query(Client).filter(
             Client.id == client_id,
             Client.organization_id == organization_id
-        ).first()
+        )
+        
+        if user_id is not None:
+            query = query.filter(Client.user_id == user_id)
+        
+        return query.first()
     
     @staticmethod
     def get_by_document(db: Session, document: str, organization_id: int) -> Optional[Client]:
@@ -31,10 +43,23 @@ class ClientService:
         organization_id: int,
         skip: int = 0,
         limit: int = 100,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        user_id: Optional[int] = None
     ) -> tuple[List[Client], int]:
-        """Lista clientes da organização com paginação e busca"""
+        """Lista clientes da organização com paginação e busca
+        
+        Args:
+            db: Sessão do banco
+            organization_id: ID da organização
+            skip: Número de registros a pular
+            limit: Limite de registros
+            search: Termo de busca
+            user_id: Se fornecido, filtra apenas clientes criados por este usuário
+        """
         query = db.query(Client).filter(Client.organization_id == organization_id)
+        
+        if user_id is not None:
+            query = query.filter(Client.user_id == user_id)
         
         if search:
             search_term = f"%{search}%"
@@ -78,10 +103,19 @@ class ClientService:
         db: Session,
         client_id: int,
         client_in: ClientUpdate,
-        organization_id: int
+        organization_id: int,
+        user_id: Optional[int] = None
     ) -> Optional[Client]:
-        """Atualiza um cliente da organização"""
-        db_client = ClientService.get_by_id(db, client_id, organization_id)
+        """Atualiza um cliente da organização
+        
+        Args:
+            db: Sessão do banco
+            client_id: ID do cliente
+            client_in: Dados de atualização
+            organization_id: ID da organização
+            user_id: Se fornecido, valida se o cliente pertence a este usuário
+        """
+        db_client = ClientService.get_by_id(db, client_id, organization_id, user_id)
         if not db_client:
             return None
         
@@ -95,9 +129,16 @@ class ClientService:
         return db_client
     
     @staticmethod
-    def delete(db: Session, client_id: int, organization_id: int) -> Optional[Client]:
-        """Deleta um cliente da organização"""
-        db_client = ClientService.get_by_id(db, client_id, organization_id)
+    def delete(db: Session, client_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[Client]:
+        """Deleta um cliente da organização
+        
+        Args:
+            db: Sessão do banco
+            client_id: ID do cliente
+            organization_id: ID da organização
+            user_id: Se fornecido, valida se o cliente pertence a este usuário
+        """
+        db_client = ClientService.get_by_id(db, client_id, organization_id, user_id)
         if not db_client:
             return None
         

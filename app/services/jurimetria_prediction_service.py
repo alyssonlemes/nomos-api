@@ -7,8 +7,6 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 
-from app.ml.features import build_inference_matrix
-from app.ml.model_registry import load_active_model
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
 
 
@@ -21,6 +19,10 @@ class JurimetriaPredictionService:
 
     @staticmethod
     def predict(tribunal: str, numero_processo: str) -> JurimetriaPredictionResponse:
+        # Lazy imports to avoid loading sklearn at startup
+        from app.ml.features import build_inference_matrix
+        from app.ml.model_registry import load_active_model
+        
         api_key = os.getenv("DATAJUD_API_KEY")
         if not api_key:
             raise ValueError("DATAJUD_API_KEY não configurada no ambiente")

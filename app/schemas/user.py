@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -32,6 +32,19 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     password: Optional[str] = Field(None, min_length=6)
     is_active: Optional[bool] = None
+
+
+class UserRoleUpdate(BaseModel):
+    """Schema para atualização de role do usuário (apenas admin/owner)"""
+    role: str = Field(..., description="Papel do usuário: admin, member, viewer, assistant")
+
+    @field_validator('role')
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        allowed_roles = ['admin', 'member', 'viewer', 'assistant']
+        if v.lower() not in allowed_roles:
+            raise ValueError(f'Role deve ser um dos seguintes: {", ".join(allowed_roles)}')
+        return v.lower()
 
 
 class UserLogin(BaseModel):

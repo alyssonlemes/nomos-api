@@ -8,7 +8,7 @@ from app.schemas.user import UserResponse
 from app.services.organization_service import OrganizationService
 from app.services.user_service import UserService
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, require_write_access
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ router = APIRouter()
 def create_organization(
     org_in: OrganizationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_write_access)
 ):
     """
     Cria uma nova organização vinculada ao usuário autenticado (Etapa 2 do fluxo).
@@ -100,7 +100,7 @@ def get_my_organization(
 def update_organization(
     org_in: OrganizationUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_write_access)
 ):
     """
     Atualiza os dados da organização do usuário.

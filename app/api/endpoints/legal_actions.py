@@ -12,7 +12,7 @@ from app.schemas.legal_action import (
 )
 from app.services.legal_action_service import LegalActionService
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, require_legal_actions_access, get_data_filter_user_id
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 def create_legal_action(
     action_in: LegalActionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_legal_actions_access)
 ):
     """
     Cria uma nova ação jurídica/processo (Etapa 3 do fluxo)
@@ -74,12 +74,16 @@ def list_legal_actions(
     client_id: Optional[int] = Query(None, description="Filtrar por cliente"),
     search: Optional[str] = Query(None, description="Buscar por número ou título"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_legal_actions_access),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Lista todas as ações jurídicas da organização com filtros (Etapa 3 do fluxo)
     
     Requer que o usuário tenha uma organização criada.
+    
+    - ADMIN/OWNER: Veem todos os processos
+    - MEMBER/VIEWER: Veem apenas seus processos
     """
     # Verificar se usuário tem organização
     if not current_user.organization_id:
@@ -96,6 +100,7 @@ def list_legal_actions(
         legal_status_id=legal_status_id,
         client_id=client_id,
         search=search,
+        user_id=filter_user_id
     )
     
     return LegalActionListResponse(total=total, legal_actions=actions)
@@ -109,10 +114,14 @@ def list_legal_actions(
 def get_legal_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_legal_actions_access),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Retorna uma ação jurídica específica
+    
+    - ADMIN/OWNER: Pode acessar qualquer processo
+    - MEMBER/VIEWER: Pode acessar apenas seus processos
     """
     # Verificar se usuário tem organização
     if not current_user.organization_id:
@@ -121,7 +130,7 @@ def get_legal_action(
             detail="Você precisa ter uma organização para acessar ações jurídicas."
         )
     
-    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id)
+    action = LegalActionService.get_by_id(db, action_id=action_id, organization_id=current_user.organization_id, user_id=filter_user_id)
     
     if not action:
         raise HTTPException(
@@ -141,7 +150,8 @@ def update_legal_action(
     action_id: int,
     action_in: LegalActionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_legal_actions_access),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Atualiza uma ação jurídica existente
@@ -159,6 +169,7 @@ def update_legal_action(
             action_id=action_id,
             action_in=action_in,
             organization_id=current_user.organization_id,
+            user_id=filter_user_id
         )
     except ValueError as e:
         raise HTTPException(
@@ -181,7 +192,8 @@ def update_legal_action(
 def delete_legal_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_legal_actions_access),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Deleta uma ação jurídica
@@ -193,7 +205,7 @@ def delete_legal_action(
             detail="Você precisa ter uma organização."
         )
     
-    action = LegalActionService.delete(db, action_id=action_id, organization_id=current_user.organization_id)
+    action = LegalActionService.delete(db, action_id=action_id, organization_id=current_user.organization_id, user_id=filter_user_id)
     
     if not action:
         raise HTTPException(

@@ -14,17 +14,24 @@ class LegalActionService:
     """
     
     @staticmethod
-    def get_by_id(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
-        """Busca ação jurídica por ID (apenas da organização)"""
-        return (
-            db.query(LegalAction)
-            .options(joinedload(LegalAction.action_type))
-            .filter(
-                LegalAction.id == action_id,
-                LegalAction.organization_id == organization_id,
-            )
-            .first()
+    def get_by_id(db: Session, action_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[LegalAction]:
+        """Busca ação jurídica por ID (apenas da organização)
+        
+        Args:
+            db: Sessão do banco
+            action_id: ID da ação
+            organization_id: ID da organização
+            user_id: Se fornecido, filtra apenas ações criadas por este usuário
+        """
+        query = db.query(LegalAction).options(joinedload(LegalAction.action_type)).filter(
+            LegalAction.id == action_id,
+            LegalAction.organization_id == organization_id,
         )
+        
+        if user_id is not None:
+            query = query.filter(LegalAction.user_id == user_id)
+        
+        return query.first()
     
     @staticmethod
     def get_by_number(db: Session, number: str, organization_id: int) -> Optional[LegalAction]:
@@ -42,10 +49,25 @@ class LegalActionService:
         limit: int = 100,
         legal_status_id: Optional[int] = None,
         client_id: Optional[int] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        user_id: Optional[int] = None
     ) -> Tuple[List[LegalAction], int]:
-        """Lista todas as ações jurídicas da organização com filtros"""
+        """Lista todas as ações jurídicas da organização com filtros
+        
+        Args:
+            db: Sessão do banco
+            organization_id: ID da organização
+            skip: Número de registros a pular
+            limit: Limite de registros
+            legal_status_id: Filtrar por status jurídico
+            client_id: Filtrar por cliente
+            search: Termo de busca
+            user_id: Se fornecido, filtra apenas ações criadas por este usuário
+        """
         query = db.query(LegalAction).filter(LegalAction.organization_id == organization_id)
+        
+        if user_id is not None:
+            query = query.filter(LegalAction.user_id == user_id)
         
         if legal_status_id:
             query = query.filter(LegalAction.legal_status_id == legal_status_id)
@@ -114,10 +136,19 @@ class LegalActionService:
         db: Session,
         action_id: int,
         action_in: LegalActionUpdate,
-        organization_id: int
+        organization_id: int,
+        user_id: Optional[int] = None
     ) -> Optional[LegalAction]:
-        """Atualiza uma ação jurídica"""
-        db_action = LegalActionService.get_by_id(db, action_id, organization_id)
+        """Atualiza uma ação jurídica
+        
+        Args:
+            db: Sessão do banco
+            action_id: ID da ação
+            action_in: Dados de atualização
+            organization_id: ID da organização
+            user_id: Se fornecido, valida se a ação pertence a este usuário
+        """
+        db_action = LegalActionService.get_by_id(db, action_id, organization_id, user_id)
         if not db_action:
             return None
         
@@ -141,12 +172,19 @@ class LegalActionService:
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
-        return LegalActionService.get_by_id(db, action_id, organization_id)
+        return LegalActionService.get_by_id(db, action_id, organization_id, user_id)
     
     @staticmethod
-    def delete(db: Session, action_id: int, organization_id: int) -> Optional[LegalAction]:
-        """Deleta uma ação jurídica"""
-        db_action = LegalActionService.get_by_id(db, action_id, organization_id)
+    def delete(db: Session, action_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[LegalAction]:
+        """Deleta uma ação jurídica
+        
+        Args:
+            db: Sessão do banco
+            action_id: ID da ação
+            organization_id: ID da organização
+            user_id: Se fornecido, valida se a ação pertence a este usuário
+        """
+        db_action = LegalActionService.get_by_id(db, action_id, organization_id, user_id)
         if not db_action:
             return None
         

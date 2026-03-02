@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_active_user
+from app.api.deps import require_legal_actions_access
 from app.database import get_db
 from app.schemas.jurimetria_batch import BatchFiltroRequest, BatchResponse
 from app.services.datajud_batch_service import DataJudBatchService
@@ -19,7 +19,7 @@ router = APIRouter()
 def executar_batch_processos(
     filtros: BatchFiltroRequest,
     db: Session = Depends(get_db),
-    _current_user = Depends(get_current_active_user),
+    _current_user = Depends(require_legal_actions_access),
 ):
     """
     Step 1 - DataJud integration.

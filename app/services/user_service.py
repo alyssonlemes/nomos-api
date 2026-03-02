@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.invitation import Invitation, InvitationStatus
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate, UserRoleUpdate
 from app.core.security import get_password_hash, verify_password
 
 
@@ -89,6 +89,31 @@ class UserService:
             setattr(db_user, field, value)
         
         db.add(db_user)  # Marca como modificado
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+
+    @staticmethod
+    def update_role(db: Session, user_id: int, role_update: UserRoleUpdate, organization_id: int) -> Optional[User]:
+        """
+        Atualiza a role de um usuário (apenas admin/owner)
+        
+        Args:
+            db: Sessão do banco de dados
+            user_id: ID do usuário
+            role_update: Nova role
+            organization_id: ID da organização (validação de propriedade)
+        
+        Returns:
+            Usuário atualizado ou None se não encontrado
+        """
+        db_user = UserService.get_by_id(db, user_id, organization_id)
+        if not db_user:
+            return None
+        
+        db_user.role = role_update.role
+        
+        db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user

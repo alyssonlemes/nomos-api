@@ -16,6 +16,7 @@ class InvitationRole(str, Enum):
     ADMIN = "admin"
     MEMBER = "member"
     VIEWER = "viewer"
+    ASSISTANT = "assistant"  # Acesso a tudo exceto processos e jurimetria
 
 
 # ========== Base Schemas ==========

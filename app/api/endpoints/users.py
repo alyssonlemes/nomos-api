@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRegisterWithOrg
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRegisterWithOrg, UserRoleUpdate
 from app.schemas.organization import OrganizationCreate
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, require_write_access, get_admin_or_owner
 
 router = APIRouter()
 
@@ -184,7 +184,7 @@ def update_user(
     user_id: int,
     user_in: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_write_access)
 ):
     """
     Atualiza os dados de um usuário (requer autenticação)
@@ -223,6 +223,71 @@ def update_user(
     return user
 
 
+@router.patch(
+    "/{user_id}/role",
+    response_model=UserResponse,
+    summary="Atualizar role do usuário"
+)
+def update_user_role(
+    user_id: int,
+    role_update: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_or_owner)
+):
+    """
+    Atualiza a role de um usuário da organização.
+    
+    **Apenas admins e owners podem realizar esta ação.**
+    
+    Roles disponíveis:
+    - **admin**: Acesso total, pode gerenciar usuários e configurações
+    - **member**: Acesso normal, pode criar e editar dados
+    - **viewer**: Apenas visualização, sem permissões de escrita
+    - **assistant**: Acesso a tudo exceto processos e jurimetria
+    
+    - **user_id**: ID do usuário a ter a role atualizada
+    - **role**: Nova role a ser atribuída
+    """
+    # Verificar se usuário tem organização
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização."
+        )
+    
+    # Buscar o usuário alvo
+    target_user = UserService.get_by_id(db, user_id=user_id, organization_id=current_user.organization_id)
+    
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado na sua organização"
+        )
+    
+    # Não permitir alterar a própria role
+    if target_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Você não pode alterar sua própria role"
+        )
+    
+    # Atualizar a role
+    updated_user = UserService.update_role(
+        db=db,
+        user_id=user_id,
+        role_update=role_update,
+        organization_id=current_user.organization_id
+    )
+    
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Erro ao atualizar usuário"
+        )
+    
+    return updated_user
+
+
 @router.post(
     "/{user_id}/unlink-organization",
     response_model=UserResponse,
@@ -231,7 +296,7 @@ def update_user(
 def unlink_organization(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_write_access)
 ):
     """
     Desvincula o usuário da organização definindo `organization_id` como None.
@@ -279,7 +344,7 @@ def unlink_organization(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_write_access)
 ):
     """
     Deleta um usuário (requer autenticação)

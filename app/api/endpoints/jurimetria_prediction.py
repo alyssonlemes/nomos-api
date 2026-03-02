@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_current_active_user
+from app.api.deps import require_legal_actions_access
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
-from app.services.jurimetria_prediction_service import JurimetriaPredictionService
 
 router = APIRouter()
 
@@ -16,11 +15,14 @@ router = APIRouter()
 def prever_tempo_tramitacao(
     tribunal: str,
     numero_processo: str,
-    _current_user = Depends(get_current_active_user)
+    _current_user = Depends(require_legal_actions_access)
 ):
     """
     Consulta DataJud e retorna previsão de tempo de tramitação.
     """
+    # Lazy import to avoid loading sklearn at startup
+    from app.services.jurimetria_prediction_service import JurimetriaPredictionService
+    
     try:
         return JurimetriaPredictionService.predict(tribunal=tribunal, numero_processo=numero_processo)
     except FileNotFoundError as exc:

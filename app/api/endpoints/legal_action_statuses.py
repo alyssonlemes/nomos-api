@@ -13,7 +13,7 @@ from app.schemas.legal_action_status import (
 )
 from app.services.legal_action_status_service import LegalActionStatusService
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import require_legal_actions_access
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ router = APIRouter()
 def create_legal_action_status(
     data_in: LegalActionStatusCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     existing = LegalActionStatusService.get_by_code(db, data_in.code.strip().lower())
     if existing:
@@ -66,7 +66,7 @@ def list_legal_action_statuses(
     limit: int = Query(100, ge=1, le=500),
     search: Optional[str] = Query(None, description="Buscar por nome ou código"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     items, total = LegalActionStatusService.get_all(db, skip=skip, limit=limit, search=search)
     return LegalActionStatusListResponse(total=total, legal_action_statuses=items)
@@ -80,7 +80,7 @@ def list_legal_action_statuses(
 def get_legal_action_status(
     status_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     obj = LegalActionStatusService.get_by_id(db, status_id)
     if not obj:
@@ -100,7 +100,7 @@ def update_legal_action_status(
     status_id: int,
     data_in: LegalActionStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     obj = LegalActionStatusService.update(db, status_id, data_in)
     if not obj:
@@ -119,7 +119,7 @@ def update_legal_action_status(
 def delete_legal_action_status(
     status_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     obj = LegalActionStatusService.get_by_id(db, status_id)
     if not obj:

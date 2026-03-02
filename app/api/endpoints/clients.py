@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse
 from app.services.client_service import ClientService
-from app.api.deps import get_current_active_user, get_user_organization
+from app.api.deps import get_current_active_user, get_user_organization, require_write_access, get_data_filter_user_id
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ router = APIRouter()
 def create_client(
     client_in: ClientCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user),
+    current_user = Depends(require_write_access),
     organization_id: int = Depends(get_user_organization)
 ):
     """
@@ -44,17 +44,22 @@ def list_clients(
     limit: int = Query(100, ge=1, le=500),
     search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    organization_id: int = Depends(get_user_organization)
+    organization_id: int = Depends(get_user_organization),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Lista todos os clientes da organização
+    
+    - ADMIN/OWNER: Veem todos os clientes
+    - MEMBER/VIEWER/ASSISTANT: Veem apenas seus clientes
     """
     clients, total = ClientService.get_all(
         db,
         organization_id=organization_id,
         skip=skip,
         limit=limit,
-        search=search
+        search=search,
+        user_id=filter_user_id
     )
     return ClientListResponse(total=total, clients=clients)
 
@@ -68,12 +73,16 @@ def list_clients(
 def get_client(
     client_id: int,
     db: Session = Depends(get_db),
-    organization_id: int = Depends(get_user_organization)
+    organization_id: int = Depends(get_user_organization),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Busca um cliente específico por ID
+    
+    - ADMIN/OWNER: Pode acessar qualquer cliente
+    - MEMBER/VIEWER/ASSISTANT: Pode acessar apenas seus clientes
     """
-    client = ClientService.get_by_id(db, client_id=client_id, organization_id=organization_id)
+    client = ClientService.get_by_id(db, client_id=client_id, organization_id=organization_id, user_id=filter_user_id)
     
     if not client:
         raise HTTPException(
@@ -93,7 +102,9 @@ def update_client(
     client_id: int,
     client_in: ClientUpdate,
     db: Session = Depends(get_db),
-    organization_id: int = Depends(get_user_organization)
+    current_user = Depends(require_write_access),
+    organization_id: int = Depends(get_user_organization),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Atualiza os dados de um cliente
@@ -114,7 +125,8 @@ def update_client(
         db,
         client_id=client_id,
         client_in=client_in,
-        organization_id=organization_id
+        organization_id=organization_id,
+        user_id=filter_user_id
     )
     
     if not client:
@@ -134,12 +146,14 @@ def update_client(
 def delete_client(
     client_id: int,
     db: Session = Depends(get_db),
-    organization_id: int = Depends(get_user_organization)
+    current_user = Depends(require_write_access),
+    organization_id: int = Depends(get_user_organization),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
     Deleta um cliente da organização
     """
-    client = ClientService.delete(db, client_id=client_id, organization_id=organization_id)
+    client = ClientService.delete(db, client_id=client_id, organization_id=organization_id, user_id=filter_user_id)
     
     if not client:
         raise HTTPException(

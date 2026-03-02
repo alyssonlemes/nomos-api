@@ -12,7 +12,7 @@ from app.schemas.legal_action_type import (
 )
 from app.services.legal_action_type_service import LegalActionTypeService
 from app.models.user import User
-from app.api.deps import get_current_active_user
+from app.api.deps import require_legal_actions_access
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 def create_legal_action_type(
     data_in: LegalActionTypeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     """Cria um novo tipo de ação jurídica (catálogo)."""
     existing = LegalActionTypeService.get_by_code(db, data_in.code.strip().lower())
@@ -49,7 +49,7 @@ def list_legal_action_types(
     limit: int = Query(100, ge=1, le=500),
     search: Optional[str] = Query(None, description="Buscar por nome ou código"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     """Lista todos os tipos de ação jurídica com paginação."""
     items, total = LegalActionTypeService.get_all(db, skip=skip, limit=limit, search=search)
@@ -64,7 +64,7 @@ def list_legal_action_types(
 def get_legal_action_type(
     type_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     """Retorna um tipo de ação jurídica pelo ID."""
     obj = LegalActionTypeService.get_by_id(db, type_id)
@@ -85,7 +85,7 @@ def update_legal_action_type(
     type_id: int,
     data_in: LegalActionTypeUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     """Atualiza um tipo de ação jurídica."""
     if data_in.code is not None:
@@ -112,7 +112,7 @@ def update_legal_action_type(
 def delete_legal_action_type(
     type_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_legal_actions_access),
 ):
     """Remove um tipo. Falha se houver ações jurídicas usando este tipo."""
     obj = LegalActionTypeService.get_by_id(db, type_id)
