@@ -164,17 +164,6 @@ class DataJudBatchService:
             if not numero_processo or not data_ajuizamento:
                 continue
 
-            data_ultima_movimentacao = DataJudBatchService._parse_date(
-                source.get("dataUltimaMovimentacao")
-                or source.get("dataUltimoMovimento")
-                or source.get("dataUltimaMovimentacaoProcessual")
-            )
-
-            tempo_tramitacao_dias = DataJudBatchService._calc_tempo_tramitacao(
-                data_ajuizamento,
-                data_ultima_movimentacao
-            )
-
             classe_processual = DataJudBatchService._extract_text_or_code(source.get("classeProcessual"))
             assunto_codigo = DataJudBatchService._extract_assunto_codigo(source.get("assuntos") or source.get("assunto"))
 
@@ -182,8 +171,6 @@ class DataJudBatchService:
                 ProcessoBatchResult(
                     numero_processo=str(numero_processo),
                     data_ajuizamento=data_ajuizamento,
-                    data_ultima_movimentacao=data_ultima_movimentacao,
-                    tempo_tramitacao_dias=tempo_tramitacao_dias
                 )
             )
 
@@ -192,8 +179,6 @@ class DataJudBatchService:
                     tribunal=filtros.tribunal_alias,
                     numero_processo=str(numero_processo),
                     data_ajuizamento=data_ajuizamento,
-                    data_ultima_movimentacao=data_ultima_movimentacao,
-                    tempo_tramitacao_dias=tempo_tramitacao_dias,
                     classe_processual=classe_processual or filtros.classe_processual,
                     assunto_codigo=assunto_codigo or filtros.assunto_codigo
                 )
@@ -239,12 +224,6 @@ class DataJudBatchService:
             except ValueError:
                 return None
         return None
-
-    @staticmethod
-    def _calc_tempo_tramitacao(data_ajuizamento: date, data_ultima: Optional[date]) -> Optional[int]:
-        if not data_ajuizamento or not data_ultima:
-            return None
-        return (data_ultima - data_ajuizamento).days
 
     @staticmethod
     def _extract_text_or_code(value: Any) -> Optional[str]:

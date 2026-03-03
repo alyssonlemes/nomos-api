@@ -10,6 +10,15 @@ from app.schemas.user import (
 )
 from app.schemas.jurimetria_batch import BatchFiltroRequest, ProcessoBatchResult, BatchResponse
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
+from app.schemas.process_analysis import (
+    AnaliseProcessosFiltro,
+    AnaliseProcessosResponse,
+    AnaliseEstatisticasFiltro,
+    AnaliseEstatisticasResponse,
+    ProcessoAnalisado,
+    EstatisticasArea,
+    AreasDisponiveisResponse,
+)
 
 __all__ = [
     "UserBase",
@@ -23,5 +32,12 @@ __all__ = [
     "BatchFiltroRequest",
     "ProcessoBatchResult",
     "BatchResponse",
-    "JurimetriaPredictionResponse"
+    "JurimetriaPredictionResponse",
+    "AnaliseProcessosFiltro",
+    "AnaliseProcessosResponse",
+    "AnaliseEstatisticasFiltro",
+    "AnaliseEstatisticasResponse",
+    "ProcessoAnalisado",
+    "EstatisticasArea",
+    "AreasDisponiveisResponse",
 ]

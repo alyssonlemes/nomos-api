@@ -13,6 +13,7 @@ from app.api.endpoints import (
     ml_router,
     dashboard_router,
     datajud_integration_router,
+    process_analysis_router,
 )
 
 api_router = APIRouter()
@@ -98,4 +99,11 @@ api_router.include_router(
     datajud_integration_router,
     prefix="/integracao/datajud",
     tags=["Integração DataJud"],
+)
+
+# Análise de Processos Judiciais (IA)
+api_router.include_router(
+    process_analysis_router,
+    prefix="/analise/processos",
+    tags=["Análise de Processos"],
 )

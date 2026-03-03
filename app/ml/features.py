@@ -28,14 +28,14 @@ def build_feature_matrices(
     train_df = pd.get_dummies(train_df, columns=categorical_cols, prefix=categorical_cols, dtype=int)
     test_df = pd.get_dummies(test_df, columns=categorical_cols, prefix=categorical_cols, dtype=int)
 
-    feature_cols = [col for col in train_df.columns if col not in ("tempo_tramitacao_dias", "data_ajuizamento", "numero_processo", "data_ultima_movimentacao")]
+    feature_cols = [col for col in train_df.columns if col not in ("duracao_dias", "data_ajuizamento", "numero_processo", "area_juridica_principal", "data_fim", "status_processo")]
 
     X_train = train_df[feature_cols]
-    y_train = train_df["tempo_tramitacao_dias"]
+    y_train = train_df["duracao_dias"]
 
     X_test = test_df[feature_cols]
     X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-    y_test = test_df["tempo_tramitacao_dias"]
+    y_test = test_df["duracao_dias"]
 
     X_train = X_train[numeric_cols + [c for c in X_train.columns if c not in numeric_cols]]
     X_test = X_test[numeric_cols + [c for c in X_test.columns if c not in numeric_cols]]

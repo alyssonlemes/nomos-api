@@ -30,8 +30,6 @@ class ProcessoBatchResult(BaseModel):
     """
     numero_processo: str
     data_ajuizamento: date
-    data_ultima_movimentacao: Optional[date] = None
-    tempo_tramitacao_dias: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

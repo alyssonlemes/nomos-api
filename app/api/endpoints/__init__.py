@@ -10,6 +10,7 @@ from app.api.endpoints.jurimetria_prediction import router as jurimetria_predict
 from app.api.endpoints.ml import router as ml_router
 from app.api.endpoints.dashboard import router as dashboard_router
 from app.api.endpoints.datajud_integration import router as datajud_integration_router
+from app.api.endpoints.process_analysis import router as process_analysis_router
 
 __all__ = [
     "auth_router",
@@ -24,4 +25,5 @@ __all__ = [
     "ml_router",
     "dashboard_router",
     "datajud_integration_router",
+    "process_analysis_router",
 ]
