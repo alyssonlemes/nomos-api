@@ -107,3 +107,12 @@ api_router.include_router(
     prefix="/analise/processos",
     tags=["Análise de Processos"],
 )
+
+# Reuniões / Agendamentos
+from app.api.endpoints.meetings import router as meetings_router
+
+api_router.include_router(
+    meetings_router,
+    prefix="/meetings",
+    tags=["Reuniões"],
+)
