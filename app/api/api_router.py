@@ -14,6 +14,7 @@ from app.api.endpoints import (
     dashboard_router,
     datajud_integration_router,
     process_analysis_router,
+    activities_router,
 )
 
 api_router = APIRouter()
@@ -115,4 +116,11 @@ api_router.include_router(
     meetings_router,
     prefix="/meetings",
     tags=["Reuniões"],
+)
+
+# Atividades / Tarefas e Eventos (Kanban)
+api_router.include_router(
+    activities_router,
+    prefix="/activities",
+    tags=["Atividades"],
 )
