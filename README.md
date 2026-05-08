@@ -78,6 +78,57 @@ uvicorn app.main:app --reload
 
 ---
 
+## ⚖️ Jurimetria (DataJud + ML)
+
+Resumo do fluxo atual para previsão de tempo de tramitação.
+
+### 1. Pré-requisito
+
+- Configurar `DATAJUD_API_KEY` no `.env`
+
+### 2. Coleta e enriquecimento de dados (recomendado para treino)
+
+Use o endpoint abaixo para coletar processos e calcular `duracao_dias` (target do modelo):
+
+**Endpoint:** `POST /api/v1/analise/processos/coletar-analisar`
+
+Esse fluxo:
+- Consulta o DataJud
+- Identifica movimento de encerramento
+- Infere `data_fim`
+- Calcula `duracao_dias` para processos finalizados
+- Persiste na tabela `jurimetria_dataset`
+
+### 3. Treinamento do modelo
+
+**Endpoint:** `POST /api/v1/ml/train`
+
+Pipeline atual:
+- Carrega registros com `duracao_dias IS NOT NULL`
+- Exige mínimo de 500 registros
+- Faz split temporal (80/20)
+- Treina `RandomForestRegressor`
+- Avalia com MAE e RMSE
+- Versiona e ativa o modelo em `app/ml/models`
+
+### 4. Predição em produção
+
+**Endpoint:** `POST /api/v1/jurimetria/previsao-tempo/{tribunal}/{numero_processo}`
+
+Resposta inclui:
+- `tempo_total_estimado_dias`
+- `tempo_decorrido_dias`
+- `tempo_estimado_restante_dias`
+
+### 5. Observação sobre batch simples
+
+Existe também o endpoint `POST /api/v1/integracao/datajud/batch/processos`, útil para integração básica.
+Esse endpoint não calcula `duracao_dias` automaticamente.
+
+Documentação detalhada: `docs/JURIMETRIA_ML.md`
+
+---
+
 ## 👤 Usuários (Users)
 
 Endpoints para gerenciamento de usuários.
