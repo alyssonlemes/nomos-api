@@ -11,7 +11,6 @@ from app.api.endpoints.ml import router as ml_router
 from app.api.endpoints.dashboard import router as dashboard_router
 from app.api.endpoints.datajud_integration import router as datajud_integration_router
 from app.api.endpoints.process_analysis import router as process_analysis_router
-from app.api.endpoints.meetings import router as meetings_router
 from app.api.endpoints.activities import router as activities_router
 
 __all__ = [
@@ -28,6 +27,5 @@ __all__ = [
     "dashboard_router",
     "datajud_integration_router",
     "process_analysis_router",
-    "meetings_router",
     "activities_router",
 ]

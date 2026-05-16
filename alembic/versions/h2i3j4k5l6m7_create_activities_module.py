@@ -1,7 +1,7 @@
 """create activities module (tasks and events unified)
 
 Revision ID: h2i3j4k5l6m7
-Revises: g1h2c3d4e5f6
+Revises: f3g4h5i6j7k8
 Create Date: 2026-05-07 00:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "h2i3j4k5l6m7"
-down_revision: Union[str, None] = "g1h2c3d4e5f6"
+down_revision: Union[str, None] = "f3g4h5i6j7k8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

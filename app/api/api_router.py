@@ -109,15 +109,6 @@ api_router.include_router(
     tags=["Análise de Processos"],
 )
 
-# Reuniões / Agendamentos
-from app.api.endpoints.meetings import router as meetings_router
-
-api_router.include_router(
-    meetings_router,
-    prefix="/meetings",
-    tags=["Reuniões"],
-)
-
 # Atividades / Tarefas e Eventos (Kanban)
 api_router.include_router(
     activities_router,
