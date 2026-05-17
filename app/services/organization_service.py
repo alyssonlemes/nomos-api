@@ -41,6 +41,8 @@ class OrganizationService:
         db_org = Organization(
             name=org_in.name,
             document=org_in.document,
+            legal_representative_name=org_in.legal_representative_name,
+            legal_representative_document=org_in.legal_representative_document,
             owner_id=owner_id,
             is_active=True
         )

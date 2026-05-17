@@ -133,18 +133,37 @@ def update_user(
     """
     Atualiza os dados de um usuário (requer autenticação)
     
-    Usuários só podem atualizar seus próprios dados.
+    Usuários só podem atualizar seus próprios dados,
+    exceto admins/owners que podem atualizar usuários da mesma organização.
     Nota: Atualização de email e senha não requer organização.
     
     - **user_id**: ID do usuário
     - Campos atualizáveis: email, full_name, password, is_active
     """
-    # Verificar se é o próprio usuário
-    if current_user.id != user_id and not UserService.is_superuser(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você só pode atualizar seu próprio perfil"
-        )
+    is_self = current_user.id == user_id
+    is_superuser = UserService.is_superuser(current_user)
+
+    if not is_self and not is_superuser:
+        if not current_user.organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Você precisa ter uma organização."
+            )
+
+        is_admin_owner = (current_user.role or "").lower() in ["admin", "owner"]
+        if not is_admin_owner:
+            organization = OrganizationService.get_by_id(
+                db,
+                organization_id=current_user.organization_id
+            )
+            if organization and organization.owner_id == current_user.id:
+                is_admin_owner = True
+
+        if not is_admin_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas administradores ou proprietários podem atualizar outros usuários."
+            )
     
     # Verificar se email já existe (se foi fornecido)
     if user_in.email:
@@ -155,8 +174,8 @@ def update_user(
                 detail="Email já registrado"
             )
     
-    # Para update do próprio usuário, organization_id pode ser None
-    user = UserService.update(db, user_id=user_id, user_in=user_in, organization_id=current_user.organization_id or 0)
+    organization_id = None if is_superuser else current_user.organization_id
+    user = UserService.update(db, user_id=user_id, user_in=user_in, organization_id=organization_id)
     
     if not user:
         raise HTTPException(

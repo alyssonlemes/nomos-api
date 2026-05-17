@@ -12,6 +12,8 @@ class Organization(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
     document = Column(String, unique=True, index=True, nullable=True)  # CNPJ - opcional
+    legal_representative_name = Column(String, nullable=True)
+    legal_representative_document = Column(String, nullable=True)
     
     # Proprietário (quem criou)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
