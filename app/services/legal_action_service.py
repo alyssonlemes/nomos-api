@@ -23,7 +23,7 @@ class LegalActionService:
             organization_id: ID da organização
             user_id: Se fornecido, filtra apenas ações criadas por este usuário
         """
-        query = db.query(LegalAction).options(joinedload(LegalAction.action_type)).filter(
+        query = db.query(LegalAction).options(joinedload(LegalAction.action_type), joinedload(LegalAction.legal_status)).filter(
             LegalAction.id == action_id,
             LegalAction.organization_id == organization_id,
         )
@@ -86,7 +86,7 @@ class LegalActionService:
         
         total = query.count()
         actions = (
-            query.options(joinedload(LegalAction.action_type))
+            query.options(joinedload(LegalAction.action_type), joinedload(LegalAction.legal_status))
             .offset(skip)
             .limit(limit)
             .all()
@@ -153,6 +153,17 @@ class LegalActionService:
             return None
         
         update_data = action_in.model_dump(exclude_unset=True)
+
+        # If frontend provided a status code (e.g. {"legal_status": "litigation"}),
+        # resolve it to an id and set `legal_status_id` for the update.
+        if "legal_status" in update_data:
+            code = update_data.get("legal_status")
+            status = db.query(LegalActionStatus).filter(LegalActionStatus.code == code).first()
+            if not status:
+                raise ValueError("Status jurídico não encontrado (código inválido)")
+            update_data["legal_status_id"] = status.id
+            # remove the string key so we only set the id on the model
+            update_data.pop("legal_status", None)
 
         if "action_type_id" in update_data:
             if not db.query(LegalActionType).filter(

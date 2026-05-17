@@ -32,7 +32,9 @@ class LegalActionUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3)
     description: Optional[str] = None
     action_type_id: Optional[int] = None
+    # Accept either an explicit `legal_status_id` or a `legal_status` code (ex: "litigation")
     legal_status_id: Optional[int] = None
+    legal_status: Optional[str] = None
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None

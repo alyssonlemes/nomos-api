@@ -10,13 +10,12 @@ COLUMNS: List[str] = [
     "tribunal",
     "numero_processo",
     "classe_processual",
-    "assunto_codigo",
+    "area_juridica_principal",
     "data_ajuizamento",
     "duracao_dias",
 ]
 
 COLUMNS_EXTENDED: List[str] = COLUMNS + [
-    "area_juridica_principal",
     "data_fim",
     "status_processo",
 ]

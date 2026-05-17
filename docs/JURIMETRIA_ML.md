@@ -41,7 +41,7 @@ O serviço:
 - Monta query DSL para o Elasticsearch do DataJud
 - Pagina usando size + from
 - Aplica rate limit entre páginas
-- Calcula tempo de tramitação (data_ultima_movimentacao - data_ajuizamento)
+- Calcula duracao_dias (data_fim - data_ajuizamento)
 - Persiste no PostgreSQL
 
 Tabela de persistência:
@@ -50,8 +50,8 @@ Tabela de persistência:
 Campos principais:
 - tribunal, numero_processo
 - classe_processual, assunto_codigo
-- data_ajuizamento, data_ultima_movimentacao
-- tempo_tramitacao_dias
+- data_ajuizamento, data_fim
+- duracao_dias
 
 ### 1.3 Fonte de dados
 
@@ -67,7 +67,7 @@ Módulo:
 - app/ml/dataset.py
 
 Regra:
-- Usa somente registros com tempo_tramitacao_dias NOT NULL
+- Usa somente registros com duracao_dias NOT NULL
 
 ### 2.2 Features utilizadas
 

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRegisterWithOrg, UserRoleUpdate
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRoleUpdate
 from app.schemas.organization import OrganizationCreate
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
@@ -53,62 +53,6 @@ def register(
             )
     
     user = UserService.create(db=db, user_in=user_in)
-    return user
-
-
-@router.post(
-    "/register-with-organization",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Registrar novo usuário com organização"
-)
-def register_with_organization(
-    user_in: UserRegisterWithOrg,
-    db: Session = Depends(get_db)
-):
-    """
-    Cria um novo usuário E uma nova organização simultaneamente
-    
-    Ideal para o primeiro usuário de um novo escritório
-    
-    - **email**: Email válido e único
-    - **password**: Senha com no mínimo 6 caracteres
-    - **full_name**: Nome completo (opcional)
-    - **organization_name**: Nome da nova organização/escritório
-    - **organization_document**: CNPJ da organização (opcional)
-    """
-    # Verificar se email já existe
-    if UserService.get_by_email(db, email=user_in.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email já registrado"
-        )
-    
-    # Verificar se documento da organização já existe
-    if user_in.organization_document:
-        existing_org = OrganizationService.get_by_document(db, document=user_in.organization_document)
-        if existing_org:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Organização com este documento já cadastrada"
-            )
-    
-    # Criar organização
-    org_data = OrganizationCreate(
-        name=user_in.organization_name,
-        document=user_in.organization_document
-    )
-    organization = OrganizationService.create(db=db, org_in=org_data)
-    
-    # Criar usuário vinculado à nova organização
-    user_data = UserCreate(
-        email=user_in.email,
-        password=user_in.password,
-        full_name=user_in.full_name,
-        organization_id=organization.id
-    )
-    user = UserService.create(db=db, user_in=user_data)
-    
     return user
 
 
