@@ -31,6 +31,11 @@ class LegalAction(Base):
     
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     user = relationship("User", backref="legal_actions")
+    assigned_users = relationship(
+        "User",
+        secondary="legal_action_users",
+        back_populates="assigned_legal_actions",
+    )
     
     # Organização
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)

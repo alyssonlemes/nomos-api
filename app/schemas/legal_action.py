@@ -18,6 +18,10 @@ class LegalActionBase(BaseModel):
         None,
         description="ID do status jurídico (catálogo legal_action_statuses). Se vazio, usa 'pre_trial'.",
     )
+    user_ids: Optional[list[int]] = Field(
+        None,
+        description="IDs de usuários vinculados ao processo (mesma organização).",
+    )
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
 
@@ -35,9 +39,18 @@ class LegalActionUpdate(BaseModel):
     # Accept either an explicit `legal_status_id` or a `legal_status` code (ex: "litigation")
     legal_status_id: Optional[int] = None
     legal_status: Optional[str] = None
+    user_ids: Optional[list[int]] = None
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None
+
+
+class LegalActionAssignedUserResponse(BaseModel):
+    id: int
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LegalActionResponse(BaseModel):
@@ -56,6 +69,7 @@ class LegalActionResponse(BaseModel):
     client_id: int
     organization_id: int
     user_id: Optional[int] = None
+    assigned_users: list[LegalActionAssignedUserResponse] = []
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
