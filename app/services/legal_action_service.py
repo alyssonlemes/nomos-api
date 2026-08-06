@@ -48,6 +48,8 @@ class LegalActionService:
             joinedload(LegalAction.action_type),
             joinedload(LegalAction.legal_status),
             joinedload(LegalAction.assigned_users),
+            joinedload(LegalAction.partes),
+            joinedload(LegalAction.movimentos),
         ).filter(
             LegalAction.id == action_id,
             LegalAction.organization_id == organization_id,
@@ -153,6 +155,18 @@ class LegalActionService:
             legal_status_id=status_id,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
+            tribunal=action_in.tribunal,
+            comarca=action_in.comarca,
+            vara=action_in.vara,
+            orgao_julgador=action_in.orgao_julgador,
+            competencia=action_in.competencia,
+            magistrado=action_in.magistrado,
+            classe_processual_codigo=action_in.classe_processual_codigo,
+            classe_processual_nome=action_in.classe_processual_nome,
+            assuntos_json=action_in.assuntos_json,
+            data_distribuicao=action_in.data_distribuicao,
+            valor_causa=action_in.valor_causa,
+            segredo_justica=action_in.segredo_justica,
             is_active=True,
         )
 

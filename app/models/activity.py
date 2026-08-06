@@ -167,5 +167,5 @@ class ActivityParticipant(Base):
     __table__ = activity_participants
     
     # Relationships
-    activity = relationship("Activity", foreign_keys=[activity_participants.c.activity_id])
-    user = relationship("User", foreign_keys=[activity_participants.c.user_id])
+    activity = relationship("Activity", foreign_keys=[activity_participants.c.activity_id], overlaps="activities_participating,participants")
+    user = relationship("User", foreign_keys=[activity_participants.c.user_id], overlaps="activities_participating,participants")

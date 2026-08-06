@@ -24,6 +24,18 @@ class LegalActionBase(BaseModel):
     )
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
+    tribunal: Optional[str] = None
+    comarca: Optional[str] = None
+    vara: Optional[str] = None
+    orgao_julgador: Optional[str] = None
+    competencia: Optional[str] = None
+    magistrado: Optional[str] = None
+    classe_processual_codigo: Optional[str] = None
+    classe_processual_nome: Optional[str] = None
+    assuntos_json: Optional[str] = None
+    data_distribuicao: Optional[date] = None
+    valor_causa: Optional[float] = None
+    segredo_justica: Optional[bool] = False
 
 
 class LegalActionCreate(LegalActionBase):
@@ -43,12 +55,49 @@ class LegalActionUpdate(BaseModel):
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None
+    client_id: Optional[int] = None
+
+    # Campos DataJud opcionais
+    tribunal: Optional[str] = None
+    comarca: Optional[str] = None
+    vara: Optional[str] = None
+    orgao_julgador: Optional[str] = None
+    competencia: Optional[str] = None
+    magistrado: Optional[str] = None
+    classe_processual_codigo: Optional[str] = None
+    classe_processual_nome: Optional[str] = None
+    assuntos_json: Optional[str] = None
+    data_distribuicao: Optional[date] = None
+    valor_causa: Optional[float] = None
+    segredo_justica: Optional[bool] = None
 
 
 class LegalActionAssignedUserResponse(BaseModel):
     id: int
     full_name: Optional[str] = None
     email: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProcessoParteResponse(BaseModel):
+    id: int
+    polo: Optional[str] = None
+    tipo_participacao: Optional[str] = None
+    nome: str
+    documento: Optional[str] = None
+    oab: Optional[str] = None
+    client_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProcessoMovimentoResponse(BaseModel):
+    id: int
+    codigo: Optional[str] = None
+    nome: str
+    data_hora: Optional[datetime] = None
+    complemento_json: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -73,6 +122,24 @@ class LegalActionResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    # Campos DataJud
+    tribunal: Optional[str] = None
+    comarca: Optional[str] = None
+    vara: Optional[str] = None
+    orgao_julgador: Optional[str] = None
+    competencia: Optional[str] = None
+    magistrado: Optional[str] = None
+    classe_processual_codigo: Optional[str] = None
+    classe_processual_nome: Optional[str] = None
+    assuntos_json: Optional[str] = None
+    data_distribuicao: Optional[date] = None
+    valor_causa: Optional[float] = None
+    segredo_justica: Optional[bool] = False
+    datajud_synced_at: Optional[datetime] = None
+
+    partes: list[ProcessoParteResponse] = []
+    movimentos: list[ProcessoMovimentoResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 

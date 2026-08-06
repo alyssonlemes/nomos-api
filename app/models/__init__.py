@@ -8,6 +8,8 @@ from app.models.notification import Notification
 from app.models.legal_action_type import LegalActionType
 from app.models.legal_action_status import LegalActionStatus
 from app.models.jurimetria_dataset import JurimetriaDataset
+from app.models.processo_parte import ProcessoParte
+from app.models.processo_movimento import ProcessoMovimento
 
 __all__ = [
     "User",
@@ -20,4 +22,6 @@ __all__ = [
     "LegalActionType",
     "LegalActionStatus",
     "JurimetriaDataset",
+    "ProcessoParte",
+    "ProcessoMovimento",
 ]
