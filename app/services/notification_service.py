@@ -36,10 +36,13 @@ class NotificationService:
         db: Session,
         *,
         user_id: int,
+        organization_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> Tuple[List[Notification], int]:
         query = db.query(Notification).filter(Notification.user_id == user_id)
+        if organization_id is not None:
+            query = query.filter(Notification.organization_id == organization_id)
         total = query.count()
         notifications = (
             query.order_by(desc(Notification.created_at))
@@ -50,12 +53,20 @@ class NotificationService:
         return notifications, total
 
     @staticmethod
-    def mark_as_read(db: Session, *, notification_id: int, user_id: int) -> Optional[Notification]:
-        notification = (
-            db.query(Notification)
-            .filter(Notification.id == notification_id, Notification.user_id == user_id)
-            .first()
+    def mark_as_read(
+        db: Session,
+        *,
+        notification_id: int,
+        user_id: int,
+        organization_id: Optional[int] = None,
+    ) -> Optional[Notification]:
+        query = db.query(Notification).filter(
+            Notification.id == notification_id,
+            Notification.user_id == user_id
         )
+        if organization_id is not None:
+            query = query.filter(Notification.organization_id == organization_id)
+        notification = query.first()
         if not notification:
             return None
         if notification.read_at is None:
@@ -71,12 +82,17 @@ class NotificationService:
         *,
         user_id: int,
         since_id: int,
+        organization_id: Optional[int] = None,
         limit: int = 100,
     ) -> List[Notification]:
+        query = db.query(Notification).filter(
+            Notification.user_id == user_id,
+            Notification.id > since_id
+        )
+        if organization_id is not None:
+            query = query.filter(Notification.organization_id == organization_id)
         return (
-            db.query(Notification)
-            .filter(Notification.user_id == user_id, Notification.id > since_id)
-            .order_by(Notification.id.asc())
+            query.order_by(Notification.id.asc())
             .limit(limit)
             .all()
         )

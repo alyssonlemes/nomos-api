@@ -2,6 +2,7 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
+from app.models.client import Client
 from app.models.legal_action import LegalAction
 from app.models.legal_action_type import LegalActionType
 from app.models.legal_action_status import LegalActionStatus
@@ -56,7 +57,12 @@ class LegalActionService:
         )
         
         if user_id is not None:
-            query = query.join(LegalAction.assigned_users).filter(User.id == user_id)
+            query = query.filter(
+                or_(
+                    LegalAction.user_id == user_id,
+                    LegalAction.assigned_users.any(User.id == user_id),
+                )
+            )
         
         return query.first()
     
@@ -94,7 +100,12 @@ class LegalActionService:
         query = db.query(LegalAction).filter(LegalAction.organization_id == organization_id)
         
         if user_id is not None:
-            query = query.join(LegalAction.assigned_users).filter(User.id == user_id)
+            query = query.filter(
+                or_(
+                    LegalAction.user_id == user_id,
+                    LegalAction.assigned_users.any(User.id == user_id),
+                )
+            )
         
         if legal_status_id:
             query = query.filter(LegalAction.legal_status_id == legal_status_id)
@@ -128,6 +139,15 @@ class LegalActionService:
     @staticmethod
     def create(db: Session, action_in: LegalActionCreate, organization_id: int, user_id: Optional[int] = None) -> LegalAction:
         """Cria uma nova ação jurídica vinculada à organização."""
+        # Validar se o cliente pertence à organização
+        if action_in.client_id:
+            client = db.query(Client).filter(
+                Client.id == action_in.client_id,
+                Client.organization_id == organization_id
+            ).first()
+            if not client:
+                raise ValueError("Cliente não encontrado ou não pertence a esta organização")
+
         # Garantir que o tipo existe
         action_type = db.query(LegalActionType).filter(LegalActionType.id == action_in.action_type_id).first()
         if not action_type:
@@ -222,6 +242,14 @@ class LegalActionService:
         
         update_data = action_in.model_dump(exclude_unset=True)
         requested_user_ids = update_data.pop("user_ids", None)
+
+        if "client_id" in update_data and update_data["client_id"] is not None:
+            client = db.query(Client).filter(
+                Client.id == update_data["client_id"],
+                Client.organization_id == organization_id
+            ).first()
+            if not client:
+                raise ValueError("Cliente não encontrado ou não pertence a esta organização")
 
         # If frontend provided a status code (e.g. {"legal_status": "litigation"}),
         # resolve it to an id and set `legal_status_id` for the update.

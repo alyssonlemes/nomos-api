@@ -53,12 +53,18 @@ def create_legal_action(
             detail="Ação jurídica com este número já existe"
         )
     
-    action = LegalActionService.create(
-        db=db,
-        action_in=action_in,
-        organization_id=current_user.organization_id,
-        user_id=current_user.id,
-    )
+    try:
+        action = LegalActionService.create(
+            db=db,
+            action_in=action_in,
+            organization_id=current_user.organization_id,
+            user_id=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     if not action:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

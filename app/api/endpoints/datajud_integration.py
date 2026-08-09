@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_legal_actions_access
+from app.api.deps import require_legal_actions_access, get_user_organization
 from app.database import get_db
 from app.models.user import User
 from app.schemas.datajud_autocomplete import ProcessoAutoCompleteResponse
@@ -11,6 +11,7 @@ from app.services.datajud_batch_service import DataJudBatchService
 
 
 router = APIRouter()
+
 
 
 # ─────────────────── Auto-Complete de Processos ────────────────────────────
@@ -100,6 +101,7 @@ def executar_batch_processos(
     filtros: BatchFiltroRequest,
     db: Session = Depends(get_db),
     _current_user = Depends(require_legal_actions_access),
+    organization_id: int = Depends(get_user_organization),
 ):
     """
     Step 1 - DataJud integration.

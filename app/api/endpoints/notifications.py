@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, get_user_organization
 from app.models.user import User
 from app.schemas.notification import NotificationListResponse, NotificationResponse
 from app.services.notification_service import NotificationService
@@ -35,10 +35,12 @@ def list_notifications(
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    organization_id: int = Depends(get_user_organization),
 ):
     notifications, total = NotificationService.list_for_user(
         db,
         user_id=current_user.id,
+        organization_id=organization_id,
         skip=skip,
         limit=limit,
     )
@@ -54,11 +56,13 @@ def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    organization_id: int = Depends(get_user_organization),
 ):
     notification = NotificationService.mark_as_read(
         db,
         notification_id=notification_id,
         user_id=current_user.id,
+        organization_id=organization_id,
     )
     if not notification:
         raise HTTPException(
@@ -81,7 +85,7 @@ async def notifications_ws(websocket: WebSocket):
     finally:
         db.close()
 
-    if not user:
+    if not user or not user.organization_id:
         await websocket.close(code=1008)
         return
 
@@ -91,7 +95,13 @@ async def notifications_ws(websocket: WebSocket):
     try:
         db = SessionLocal()
         try:
-            items, _ = NotificationService.list_for_user(db, user_id=user.id, skip=0, limit=5)
+            items, _ = NotificationService.list_for_user(
+                db,
+                user_id=user.id,
+                organization_id=user.organization_id,
+                skip=0,
+                limit=5,
+            )
             if items:
                 last_id = max(item.id for item in items)
             await websocket.send_json(
@@ -110,6 +120,7 @@ async def notifications_ws(websocket: WebSocket):
                 new_items = NotificationService.list_for_user_since_id(
                     db,
                     user_id=user.id,
+                    organization_id=user.organization_id,
                     since_id=last_id,
                     limit=50,
                 )
