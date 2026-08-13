@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse
@@ -153,11 +154,17 @@ def delete_client(
     """
     Deleta um cliente da organização
     """
-    client = ClientService.delete(db, client_id=client_id, organization_id=organization_id, user_id=filter_user_id)
-    
-    if not client:
+    try:
+        client = ClientService.delete(db, client_id=client_id, organization_id=organization_id, user_id=filter_user_id)
+        if not client:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cliente não encontrado"
+            )
+    except IntegrityError:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente não encontrado"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível excluir o cliente pois ele possui processos vinculados."
         )
 

@@ -1,6 +1,10 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import require_legal_actions_access
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -27,11 +31,13 @@ def train_model(
             "total_records": total_records
         }
     except ValueError as exc:
+        logger.warning("Treino abortado por erro de validacao: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Registros insuficientes para treino. Mínimo: {MIN_TRAINING_RECORDS}"
         ) from exc
     except Exception as exc:
+        logger.exception("Erro inesperado ao treinar modelo")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao treinar modelo"

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Date, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Date, Index, UniqueConstraint, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -31,6 +31,11 @@ class LegalAction(Base):
     
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     user = relationship("User", backref="legal_actions")
+    assigned_users = relationship(
+        "User",
+        secondary="legal_action_users",
+        back_populates="assigned_legal_actions",
+    )
     
     # Organização
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
@@ -47,13 +52,42 @@ class LegalAction(Base):
     )
     legal_status = relationship("LegalActionStatus", back_populates="legal_actions")
     
-    # Tribunal (opcional)
-    court_name = Column(String)
-    
+    # Tribunal / Localização
+    court_name = Column(String)  # Nome legível do tribunal
+    tribunal = Column(String, index=True)  # Alias DataJud (ex: "tjsp")
+    comarca = Column(String)
+    vara = Column(String)
+    orgao_julgador = Column(String)
+    competencia = Column(String)
+    magistrado = Column(String)
+
+    # Classe processual (TPU)
+    classe_processual_codigo = Column(String, index=True)
+    classe_processual_nome = Column(String)
+
+    # Assuntos (JSON serializado: [{"codigo": "...", "nome": "..."}])
+    assuntos_json = Column(Text)
+
     # Datas
-    filing_date = Column(Date)
+    filing_date = Column(Date)  # data do ajuizamento (dataAjuizamento)
+    data_distribuicao = Column(Date)  # dataHoraDistribuicao
     closing_date = Column(Date)
-    
+
+    # Financeiro
+    valor_causa = Column(Numeric(15, 2))
+
+    # Segredo de justiça
+    segredo_justica = Column(Boolean, default=False)
+
+    # Sincronização DataJud
+    datajud_synced_at = Column(DateTime(timezone=True))  # última sync com CNJ
+    datajud_last_update = Column(String)   # dataHoraUltimaAtualizacao do CNJ
+    datajud_preserve_manual = Column(Boolean, default=False)  # proteger edições manuais
+
+    # Relacionamentos DataJud
+    partes = relationship("ProcessoParte", back_populates="legal_action", cascade="all, delete-orphan")
+    movimentos = relationship("ProcessoMovimento", back_populates="legal_action", cascade="all, delete-orphan")
+
     # Metadados
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -36,15 +36,16 @@ class UserUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     """Schema para atualização de role do usuário (apenas admin/owner)"""
-    role: str = Field(..., description="Papel do usuário: admin, member, viewer, assistant")
+    role: str = Field(..., description="Papel do usuário: ADMIN, OWNER, MEMBER, VIEWER, ASSISTANT")
 
     @field_validator('role')
     @classmethod
     def validate_role(cls, v: str) -> str:
-        allowed_roles = ['admin', 'member', 'viewer', 'assistant']
-        if v.lower() not in allowed_roles:
+        allowed_roles = ['ADMIN', 'OWNER', 'MEMBER', 'VIEWER', 'ASSISTANT']
+        role_upper = v.upper()
+        if role_upper not in allowed_roles:
             raise ValueError(f'Role deve ser um dos seguintes: {", ".join(allowed_roles)}')
-        return v.lower()
+        return role_upper
 
 
 class UserLogin(BaseModel):

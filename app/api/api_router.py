@@ -14,6 +14,8 @@ from app.api.endpoints import (
     dashboard_router,
     datajud_integration_router,
     process_analysis_router,
+    activities_router,
+    notifications_router,
 )
 
 api_router = APIRouter()
@@ -106,4 +108,18 @@ api_router.include_router(
     process_analysis_router,
     prefix="/analise/processos",
     tags=["Análise de Processos"],
+)
+
+# Atividades / Tarefas e Eventos (Kanban)
+api_router.include_router(
+    activities_router,
+    prefix="/activities",
+    tags=["Atividades"],
+)
+
+# Notificacoes in-app
+api_router.include_router(
+    notifications_router,
+    prefix="/notifications",
+    tags=["Notificacoes"],
 )

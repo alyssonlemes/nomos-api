@@ -1,9 +1,10 @@
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 
@@ -16,6 +17,8 @@ class JurimetriaPredictionService:
     """
 
     REQUEST_TIMEOUT_SECONDS = 30
+
+    REQUIRED_CHAT_FIELDS = ("tribunal", "data_ajuizamento")
 
     @staticmethod
     def predict(tribunal: str, numero_processo: str) -> JurimetriaPredictionResponse:
@@ -72,6 +75,98 @@ class JurimetriaPredictionService:
             tempo_estimado_restante_dias=tempo_estimado_restante_dias,
             fonte_dados="DataJud"
         )
+
+    @staticmethod
+    def predict_from_features(
+        tribunal: str,
+        classe_processual: Optional[str],
+        area_juridica_principal: Optional[str],
+        data_ajuizamento: date,
+    ) -> Dict[str, Any]:
+        from app.ml.features import build_inference_matrix
+        from app.ml.model_registry import load_active_model
+
+        model, metadata = load_active_model()
+        if not model or not metadata:
+            raise RuntimeError("Modelo ativo não encontrado")
+
+        feature_columns = metadata.get("feature_columns")
+        if not feature_columns:
+            raise RuntimeError("Modelo ativo não possui metadata de features")
+
+        features_input = {
+            "tribunal": tribunal,
+            "classe_processual": classe_processual,
+            "area_juridica_principal": area_juridica_principal,
+            "data_ajuizamento": data_ajuizamento,
+        }
+
+        X = build_inference_matrix(features_input, feature_columns)
+        prediction = float(model.predict(X)[0])
+        tempo_total_estimado_dias = max(int(round(prediction)), 0)
+
+        tempo_decorrido_dias = JurimetriaPredictionService._calc_tempo_decorrido(data_ajuizamento)
+        tempo_estimado_restante_dias = None
+        if tempo_decorrido_dias is not None:
+            tempo_estimado_restante_dias = max(tempo_total_estimado_dias - tempo_decorrido_dias, 0)
+
+        return {
+            "tribunal": tribunal,
+            "classe_processual": classe_processual,
+            "area_juridica_principal": area_juridica_principal,
+            "data_ajuizamento": data_ajuizamento,
+            "tempo_total_estimado_dias": tempo_total_estimado_dias,
+            "tempo_decorrido_dias": tempo_decorrido_dias,
+            "tempo_estimado_restante_dias": tempo_estimado_restante_dias,
+            "fonte_dados": "Manual",
+        }
+
+    @staticmethod
+    def parse_chat_message(
+        message: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[Dict[str, Any], list[str]]:
+        data: Dict[str, Any] = {**(context or {})}
+        lowered = message.lower()
+
+        if not data.get("tribunal"):
+            tribunal_match = re.search(r"\b(tj[a-z]{2,3})\b", lowered)
+            if tribunal_match:
+                data["tribunal"] = tribunal_match.group(1)
+
+        if not data.get("data_ajuizamento"):
+            date_match = re.search(r"(\d{4}-\d{2}-\d{2})", lowered)
+            if not date_match:
+                date_match = re.search(r"(\d{2})[/-](\d{2})[/-](\d{4})", lowered)
+                if date_match:
+                    day, month, year = date_match.groups()
+                    data["data_ajuizamento"] = date(int(year), int(month), int(day))
+            else:
+                try:
+                    data["data_ajuizamento"] = date.fromisoformat(date_match.group(1))
+                except ValueError:
+                    pass
+
+        if not data.get("area_juridica_principal"):
+            area_match = re.search(
+                r"area(?:_juridica(?:_principal)?)?\s*[:=]\s*([^\n\r;,.]+)",
+                message,
+                re.IGNORECASE,
+            )
+            if area_match:
+                data["area_juridica_principal"] = area_match.group(1).strip()
+
+        if not data.get("classe_processual"):
+            classe_match = re.search(
+                r"classe(?:_processual)?\s*[:=]\s*([^\n\r;,.]+)",
+                message,
+                re.IGNORECASE,
+            )
+            if classe_match:
+                data["classe_processual"] = classe_match.group(1).strip()
+
+        missing = [field for field in JurimetriaPredictionService.REQUIRED_CHAT_FIELDS if not data.get(field)]
+        return data, missing
 
     @staticmethod
     def _fetch_process_data(api_key: str, tribunal: str, numero_processo: str) -> Optional[Dict[str, Any]]:

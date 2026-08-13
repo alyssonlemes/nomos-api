@@ -22,6 +22,11 @@ class User(Base):
     # Organização (opcional até criar uma)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
     organization = relationship("Organization", foreign_keys=[organization_id], backref="users")
+    assigned_legal_actions = relationship(
+        "LegalAction",
+        secondary="legal_action_users",
+        back_populates="assigned_users",
+    )
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

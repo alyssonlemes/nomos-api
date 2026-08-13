@@ -43,9 +43,11 @@ Body (exemplo):
 ```
 
 Este fluxo:
-- pagina com from/size
-- persiste dados basicos no PostgreSQL
-- nao calcula duracao_dias automaticamente
+- Monta query DSL para o Elasticsearch do DataJud
+- Pagina usando size + from
+- Aplica rate limit entre páginas
+- Calcula duracao_dias (data_fim - data_ajuizamento)
+- Persiste no PostgreSQL
 
 ### 2.2 Coleta + analise de processos (recomendado para ML)
 
@@ -114,8 +116,8 @@ Observacao importante:
 Modulo de dataset:
 - app/ml/dataset.py
 
-Regra de carregamento:
-- usa somente registros com duracao_dias IS NOT NULL
+Regra:
+- Usa somente registros com duracao_dias NOT NULL
 
 Modulo de features:
 - app/ml/features.py

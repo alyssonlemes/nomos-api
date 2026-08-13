@@ -62,7 +62,7 @@ class UserService:
         return db_user
     
     @staticmethod
-    def update(db: Session, user_id: int, user_in: UserUpdate, organization_id: int) -> Optional[User]:
+    def update(db: Session, user_id: int, user_in: UserUpdate, organization_id: Optional[int]) -> Optional[User]:
         """
         Atualiza um usuário existente
         
@@ -75,7 +75,10 @@ class UserService:
         Returns:
             Usuário atualizado ou None se não encontrado
         """
-        db_user = UserService.get_by_id(db, user_id, organization_id)
+        if organization_id is None:
+            db_user = db.query(User).filter(User.id == user_id).first()
+        else:
+            db_user = UserService.get_by_id(db, user_id, organization_id)
         if not db_user:
             return None
         

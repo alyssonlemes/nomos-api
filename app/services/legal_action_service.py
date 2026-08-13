@@ -2,16 +2,38 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
+from app.models.client import Client
 from app.models.legal_action import LegalAction
 from app.models.legal_action_type import LegalActionType
 from app.models.legal_action_status import LegalActionStatus
+from app.models.user import User
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
+from app.services.notification_service import NotificationService
 
 
 class LegalActionService:
     """
     Serviço para operações de ações jurídicas
     """
+
+    @staticmethod
+    def _resolve_assigned_users(
+        db: Session,
+        *,
+        organization_id: int,
+        user_ids: list[int],
+    ) -> list[User]:
+        if not user_ids:
+            return []
+        unique_ids = list(dict.fromkeys(user_ids))
+        users = (
+            db.query(User)
+            .filter(User.id.in_(unique_ids), User.organization_id == organization_id)
+            .all()
+        )
+        if len(users) != len(unique_ids):
+            raise ValueError("Um ou mais usuarios nao pertencem a organizacao")
+        return users
     
     @staticmethod
     def get_by_id(db: Session, action_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[LegalAction]:
@@ -23,13 +45,24 @@ class LegalActionService:
             organization_id: ID da organização
             user_id: Se fornecido, filtra apenas ações criadas por este usuário
         """
-        query = db.query(LegalAction).options(joinedload(LegalAction.action_type)).filter(
+        query = db.query(LegalAction).options(
+            joinedload(LegalAction.action_type),
+            joinedload(LegalAction.legal_status),
+            joinedload(LegalAction.assigned_users),
+            joinedload(LegalAction.partes),
+            joinedload(LegalAction.movimentos),
+        ).filter(
             LegalAction.id == action_id,
             LegalAction.organization_id == organization_id,
         )
         
         if user_id is not None:
-            query = query.filter(LegalAction.user_id == user_id)
+            query = query.filter(
+                or_(
+                    LegalAction.user_id == user_id,
+                    LegalAction.assigned_users.any(User.id == user_id),
+                )
+            )
         
         return query.first()
     
@@ -67,7 +100,12 @@ class LegalActionService:
         query = db.query(LegalAction).filter(LegalAction.organization_id == organization_id)
         
         if user_id is not None:
-            query = query.filter(LegalAction.user_id == user_id)
+            query = query.filter(
+                or_(
+                    LegalAction.user_id == user_id,
+                    LegalAction.assigned_users.any(User.id == user_id),
+                )
+            )
         
         if legal_status_id:
             query = query.filter(LegalAction.legal_status_id == legal_status_id)
@@ -84,9 +122,14 @@ class LegalActionService:
                 )
             )
         
-        total = query.count()
+        total = query.distinct(LegalAction.id).count()
         actions = (
-            query.options(joinedload(LegalAction.action_type))
+            query.options(
+                joinedload(LegalAction.action_type),
+                joinedload(LegalAction.legal_status),
+                joinedload(LegalAction.assigned_users),
+            )
+            .distinct(LegalAction.id)
             .offset(skip)
             .limit(limit)
             .all()
@@ -96,6 +139,15 @@ class LegalActionService:
     @staticmethod
     def create(db: Session, action_in: LegalActionCreate, organization_id: int, user_id: Optional[int] = None) -> LegalAction:
         """Cria uma nova ação jurídica vinculada à organização."""
+        # Validar se o cliente pertence à organização
+        if action_in.client_id:
+            client = db.query(Client).filter(
+                Client.id == action_in.client_id,
+                Client.organization_id == organization_id
+            ).first()
+            if not client:
+                raise ValueError("Cliente não encontrado ou não pertence a esta organização")
+
         # Garantir que o tipo existe
         action_type = db.query(LegalActionType).filter(LegalActionType.id == action_in.action_type_id).first()
         if not action_type:
@@ -123,12 +175,47 @@ class LegalActionService:
             legal_status_id=status_id,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
+            tribunal=action_in.tribunal,
+            comarca=action_in.comarca,
+            vara=action_in.vara,
+            orgao_julgador=action_in.orgao_julgador,
+            competencia=action_in.competencia,
+            magistrado=action_in.magistrado,
+            classe_processual_codigo=action_in.classe_processual_codigo,
+            classe_processual_nome=action_in.classe_processual_nome,
+            assuntos_json=action_in.assuntos_json,
+            data_distribuicao=action_in.data_distribuicao,
+            valor_causa=action_in.valor_causa,
+            segredo_justica=action_in.segredo_justica,
             is_active=True,
         )
+
+        requested_user_ids = action_in.user_ids or []
+        assigned_ids = set(requested_user_ids)
+        if user_id is not None:
+            assigned_ids.add(user_id)
+        assigned_users = LegalActionService._resolve_assigned_users(
+            db,
+            organization_id=organization_id,
+            user_ids=list(assigned_ids),
+        )
+        db_action.assigned_users = assigned_users
         
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
+
+        for assigned_user in assigned_users:
+            if user_id is not None and assigned_user.id == user_id:
+                continue
+            NotificationService.create(
+                db,
+                user_id=assigned_user.id,
+                organization_id=organization_id,
+                legal_action_id=db_action.id,
+                title="Processo vinculado",
+                message=f"Voce foi vinculado ao processo {db_action.number} - {db_action.title}.",
+            )
         return LegalActionService.get_by_id(db, db_action.id, organization_id)
     
     @staticmethod
@@ -137,7 +224,8 @@ class LegalActionService:
         action_id: int,
         action_in: LegalActionUpdate,
         organization_id: int,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        actor_user_id: Optional[int] = None,
     ) -> Optional[LegalAction]:
         """Atualiza uma ação jurídica
         
@@ -153,6 +241,26 @@ class LegalActionService:
             return None
         
         update_data = action_in.model_dump(exclude_unset=True)
+        requested_user_ids = update_data.pop("user_ids", None)
+
+        if "client_id" in update_data and update_data["client_id"] is not None:
+            client = db.query(Client).filter(
+                Client.id == update_data["client_id"],
+                Client.organization_id == organization_id
+            ).first()
+            if not client:
+                raise ValueError("Cliente não encontrado ou não pertence a esta organização")
+
+        # If frontend provided a status code (e.g. {"legal_status": "litigation"}),
+        # resolve it to an id and set `legal_status_id` for the update.
+        if "legal_status" in update_data:
+            code = update_data.get("legal_status")
+            status = db.query(LegalActionStatus).filter(LegalActionStatus.code == code).first()
+            if not status:
+                raise ValueError("Status jurídico não encontrado (código inválido)")
+            update_data["legal_status_id"] = status.id
+            # remove the string key so we only set the id on the model
+            update_data.pop("legal_status", None)
 
         if "action_type_id" in update_data:
             if not db.query(LegalActionType).filter(
@@ -168,10 +276,37 @@ class LegalActionService:
 
         for field, value in update_data.items():
             setattr(db_action, field, value)
+
+        new_assigned_users = None
+        new_user_ids_to_notify: set[int] = set()
+        if requested_user_ids is not None:
+            assigned_ids = set(requested_user_ids)
+            new_assigned_users = LegalActionService._resolve_assigned_users(
+                db,
+                organization_id=organization_id,
+                user_ids=list(assigned_ids),
+            )
+            current_ids = {user.id for user in db_action.assigned_users}
+            new_ids = {user.id for user in new_assigned_users}
+            db_action.assigned_users = new_assigned_users
+            new_user_ids_to_notify = new_ids - current_ids
+            if actor_user_id is not None:
+                new_user_ids_to_notify.discard(actor_user_id)
         
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
+
+        if new_user_ids_to_notify:
+            for target_user_id in new_user_ids_to_notify:
+                NotificationService.create(
+                    db,
+                    user_id=target_user_id,
+                    organization_id=organization_id,
+                    legal_action_id=db_action.id,
+                    title="Processo vinculado",
+                    message=f"Voce foi vinculado ao processo {db_action.number} - {db_action.title}.",
+                )
         return LegalActionService.get_by_id(db, action_id, organization_id, user_id)
     
     @staticmethod
