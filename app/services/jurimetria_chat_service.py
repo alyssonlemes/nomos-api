@@ -50,9 +50,12 @@ TRIBUNAL_ALIASES: dict[str, str] = {
     "tjmmg": "tjmmg", "tjmrs": "tjmrs", "tjmsp": "tjmsp",
 }
 
-# Padrão CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO
-CNJ_PATTERN = re.compile(
+# Padrão CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO ou 20 dígitos numéricos seguidos
+CNJ_PATTERN_FORMATTED = re.compile(
     r"\b(\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4})\b"
+)
+CNJ_PATTERN_UNFORMATTED = re.compile(
+    r"\b(\d{20})\b"
 )
 
 # Palavras que indicam consulta de estatísticas
@@ -72,7 +75,7 @@ AREA_KEYWORDS: dict[str, list[str]] = {
     "Fazendária": ["fazend", "tributário", "tributario", "imposto", "fiscal", "fisco", "receita federal"],
 }
 
-# Mensagem de ajuda
+# Mensagem de ajuda inicial
 HELP_MESSAGE = (
     "Olá! Sou o assistente de jurimetria da Nomos, alimentado por um modelo "
     "de Machine Learning (scikit-learn).\n\n"
@@ -83,7 +86,7 @@ HELP_MESSAGE = (
     "• **Estatísticas gerais** — pergunte sobre tempo médio por área. "
     "Ex: \"Qual o tempo médio de processos trabalhistas?\"\n"
     "• **Comparativos por tribunal** — Ex: \"Como é a tramitação no TJRJ?\"\n\n"
-    "O que deseja saber?"
+    "💡 **Para tentar outro ou analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*)."
 )
 
 
@@ -143,21 +146,38 @@ class JurimetriaChatService:
 
         # 3. Se o usuário enviou apenas o tribunal para um processo informado anteriormente sem tribunal
         if tribunal and request.historico:
-            numero_anterior = None
-            for item in reversed(request.historico):
-                if item.role == "user":
-                    n = JurimetriaChatService._extrair_numero_processo(item.content)
-                    if n:
-                        numero_anterior = n
-                        break
-            if numero_anterior:
-                return JurimetriaChatService._fluxo_predicao(
-                    mensagem=mensagem,
-                    numero_processo=numero_anterior,
-                    tribunal=tribunal,
-                )
+            ultimo_assistant = next((m for m in reversed(request.historico) if m.role == "assistant"), None)
+            estava_pedindo_tribunal = (
+                ultimo_assistant and ("preciso saber em qual tribunal" in ultimo_assistant.content or "informe o tribunal" in ultimo_assistant.content)
+            )
 
-        # 4. Fallback: mensagem de ajuda
+            if estava_pedindo_tribunal:
+                numero_anterior = None
+                for item in reversed(request.historico):
+                    if item.role == "user":
+                        n = JurimetriaChatService._extrair_numero_processo(item.content)
+                        if n:
+                            numero_anterior = n
+                            break
+                if numero_anterior:
+                    return JurimetriaChatService._fluxo_predicao(
+                        mensagem=mensagem,
+                        numero_processo=numero_anterior,
+                        tribunal=tribunal,
+                    )
+
+        # 4. Fallback: orientação para tentar outro processo ou tirar dúvidas
+        if request.historico:
+            resposta_fallback = (
+                "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
+                "Ex: *5001234-56.2023.8.21.0001 no TJRS*\n\n"
+                "Você também pode fazer perguntas sobre estatísticas gerais por área ou tribunal (ex: *Qual o tempo médio de processos trabalhistas?*)."
+            )
+            return JurimetriaChatResponse(
+                resposta=resposta_fallback,
+                tipo="ajuda",
+            )
+
         return JurimetriaChatResponse(
             resposta=HELP_MESSAGE,
             tipo="ajuda",
@@ -169,8 +189,14 @@ class JurimetriaChatService:
 
     @staticmethod
     def _extrair_numero_processo(texto: str) -> Optional[str]:
-        match = CNJ_PATTERN.search(texto)
-        return match.group(1) if match else None
+        match = CNJ_PATTERN_FORMATTED.search(texto)
+        if match:
+            return match.group(1)
+        match_raw = CNJ_PATTERN_UNFORMATTED.search(texto)
+        if match_raw:
+            digits = match_raw.group(1)
+            return f"{digits[:7]}-{digits[7:9]}.{digits[9:13]}.{digits[13]}.{digits[14:16]}.{digits[16:]}"
+        return None
 
     @staticmethod
     def _extrair_tribunal(texto: str) -> Optional[str]:
@@ -316,6 +342,7 @@ class JurimetriaChatService:
                 )
 
         partes.append("\n_Previsão baseada em dados históricos do DataJud e modelo treinado com scikit-learn._")
+        partes.append("\n💡 **Para tentar outro processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*).")
 
         return JurimetriaChatResponse(
             resposta="\n".join(partes),
