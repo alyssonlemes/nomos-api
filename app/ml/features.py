@@ -65,9 +65,12 @@ def build_inference_matrix(
     df = pd.DataFrame([features_input])
     df = _prepare_dates(df)
 
-    categorical_cols = ["tribunal", "classe_processual", "area_juridica_principal"]
-    df[categorical_cols] = df[categorical_cols].fillna("desconhecido")
+    categorical_cols = ["tribunal", "classe_processual", "area_juridica_principal", "assunto_codigo"]
+    for col in categorical_cols:
+        if col not in df.columns:
+            df[col] = "desconhecido"
 
+    df[categorical_cols] = df[categorical_cols].fillna("desconhecido")
     df = pd.get_dummies(df, columns=categorical_cols, prefix=categorical_cols, dtype=int)
 
     feature_df = df.reindex(columns=feature_columns, fill_value=0)

@@ -175,13 +175,23 @@ class JurimetriaPredictionService:
     @staticmethod
     def _fetch_process_data(api_key: str, tribunal: str, numero_processo: str) -> Optional[Dict[str, Any]]:
         url = f"https://api-publica.datajud.cnj.jus.br/api_publica_{tribunal}/_search"
+        limpo = re.sub(r"\D", "", numero_processo)
+        should_clauses = [
+            {"term": {"numeroProcesso.keyword": numero_processo}},
+            {"term": {"numeroProcesso": numero_processo}},
+        ]
+        if limpo:
+            should_clauses.extend([
+                {"term": {"numeroProcesso.keyword": limpo}},
+                {"term": {"numeroProcesso": limpo}},
+            ])
+
         payload = {
             "size": 1,
             "query": {
                 "bool": {
-                    "must": [
-                        {"term": {"numeroProcesso.keyword": numero_processo}}
-                    ]
+                    "should": should_clauses,
+                    "minimum_should_match": 1,
                 }
             }
         }
@@ -217,19 +227,33 @@ class JurimetriaPredictionService:
 
     @staticmethod
     def _normalize_for_features(tribunal: str, process_data: Dict[str, Any]) -> Dict[str, Any]:
+        from app.services.tpu_mapping import classificar_area_juridica
+
         classe_processual = JurimetriaPredictionService._extract_text_or_code(
-            process_data.get("classeProcessual")
+            process_data.get("classeProcessual") or process_data.get("classe")
         )
         assunto_codigo = JurimetriaPredictionService._extract_assunto_codigo(
             process_data.get("assuntos") or process_data.get("assunto")
         )
 
-        data_ajuizamento = JurimetriaPredictionService._parse_date(process_data.get("dataAjuizamento"))
+        assunto_codigos = [assunto_codigo] if assunto_codigo else None
+        area_juridica_principal = classificar_area_juridica(
+            classe_codigo=classe_processual,
+            assunto_codigos=assunto_codigos
+        )
+
+        raw_date = (
+            process_data.get("dataAjuizamento")
+            or process_data.get("dataHoraDistribuicao")
+            or process_data.get("dataDistribuicao")
+        )
+        data_ajuizamento = JurimetriaPredictionService._parse_date(raw_date)
 
         return {
             "tribunal": tribunal,
             "classe_processual": classe_processual,
             "assunto_codigo": assunto_codigo,
+            "area_juridica_principal": area_juridica_principal,
             "data_ajuizamento": data_ajuizamento
         }
 
@@ -241,12 +265,33 @@ class JurimetriaPredictionService:
             return value
         if isinstance(value, datetime):
             return value.date()
+        if isinstance(value, (int, float)):
+            value = str(int(value))
         if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
             try:
                 normalized = value.replace("Z", "+00:00")
                 return datetime.fromisoformat(normalized).date()
             except ValueError:
-                return None
+                pass
+            if value.isdigit():
+                if len(value) >= 14:
+                    try:
+                        return datetime.strptime(value[:14], "%Y%m%d%H%M%S").date()
+                    except ValueError:
+                        pass
+                if len(value) >= 8:
+                    try:
+                        return datetime.strptime(value[:8], "%Y%m%d").date()
+                    except ValueError:
+                        pass
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+                try:
+                    return datetime.strptime(value, fmt).date()
+                except ValueError:
+                    continue
         return None
 
     @staticmethod

@@ -108,50 +108,56 @@ class JurimetriaChatService:
         numero_processo = JurimetriaChatService._extrair_numero_processo(mensagem)
         tribunal = JurimetriaChatService._extrair_tribunal(mensagem)
 
-        # 2. Se não encontrou número de processo, buscar no histórico
-        #    (cobre o caso: usuário manda o número numa msg, tribunal noutra)
-        numero_processo_ctx: Optional[str] = numero_processo
-        tribunal_ctx: Optional[str] = tribunal
+        # Se há um número de processo na mensagem atual, a prioridade é analisar ESTE processo
+        if numero_processo:
+            # Tentar resolver o tribunal automaticamente pelo número CNJ se não foi informado no texto
+            if not tribunal:
+                try:
+                    from app.services.datajud_autocomplete_service import DataJudAutoCompleteService
+                    _, tribunal_auto = DataJudAutoCompleteService.resolve_tribunal_endpoint(numero_processo)
+                    tribunal = tribunal_auto
+                except Exception:
+                    pass
 
-        if not numero_processo_ctx and request.historico:
+            return JurimetriaChatService._fluxo_predicao(
+                mensagem=mensagem,
+                numero_processo=numero_processo,
+                tribunal=tribunal,
+            )
+
+        # 2. Se a mensagem atual não tem processo, verificar se é uma pergunta sobre estatísticas gerais
+        if JurimetriaChatService._e_pergunta_estatistica(mensagem):
+            tribunal_est = tribunal
+            if not tribunal_est and request.historico:
+                for item in reversed(request.historico):
+                    if item.role == "user":
+                        t = JurimetriaChatService._extrair_tribunal(item.content)
+                        if t:
+                            tribunal_est = t
+                            break
+            return JurimetriaChatService._fluxo_estatisticas(
+                mensagem=mensagem,
+                db=db,
+                tribunal=tribunal_est,
+            )
+
+        # 3. Se o usuário enviou apenas o tribunal para um processo informado anteriormente sem tribunal
+        if tribunal and request.historico:
+            numero_anterior = None
             for item in reversed(request.historico):
                 if item.role == "user":
                     n = JurimetriaChatService._extrair_numero_processo(item.content)
                     if n:
-                        numero_processo_ctx = n
-                        # Se o tribunal também não foi encontrado na msg atual,
-                        # tentar pegar do mesmo item do histórico
-                        if not tribunal_ctx:
-                            tribunal_ctx = JurimetriaChatService._extrair_tribunal(item.content)
+                        numero_anterior = n
                         break
+            if numero_anterior:
+                return JurimetriaChatService._fluxo_predicao(
+                    mensagem=mensagem,
+                    numero_processo=numero_anterior,
+                    tribunal=tribunal,
+                )
 
-        # Se o tribunal não está na mensagem atual mas está em alguma msg anterior,
-        # tentar recuperá-lo do histórico
-        if not tribunal_ctx and request.historico:
-            for item in reversed(request.historico):
-                if item.role == "user":
-                    t = JurimetriaChatService._extrair_tribunal(item.content)
-                    if t:
-                        tribunal_ctx = t
-                        break
-
-        # 3. Fluxo de predição ML (número de processo encontrado na msg atual ou no histórico)
-        if numero_processo_ctx:
-            return JurimetriaChatService._fluxo_predicao(
-                mensagem=mensagem,
-                numero_processo=numero_processo_ctx,
-                tribunal=tribunal_ctx,
-            )
-
-        # 4. Fluxo de estatísticas
-        if JurimetriaChatService._e_pergunta_estatistica(mensagem):
-            return JurimetriaChatService._fluxo_estatisticas(
-                mensagem=mensagem,
-                db=db,
-                tribunal=tribunal_ctx,
-            )
-
-        # 5. Fallback: mensagem de ajuda
+        # 4. Fallback: mensagem de ajuda
         return JurimetriaChatResponse(
             resposta=HELP_MESSAGE,
             tipo="ajuda",
@@ -246,6 +252,15 @@ class JurimetriaChatService:
                 resposta=(
                     f"Ocorreu um erro ao consultar o DataJud: {mensagem_erro}\n\n"
                     "Tente novamente em alguns instantes."
+                ),
+                tipo="texto",
+                numero_processo=numero_processo,
+                tribunal=tribunal,
+            )
+        except ValueError as exc:
+            return JurimetriaChatResponse(
+                resposta=(
+                    f"Não foi possível calcular a previsão para o processo **{numero_processo}**: {exc}"
                 ),
                 tipo="texto",
                 numero_processo=numero_processo,
