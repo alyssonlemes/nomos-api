@@ -697,8 +697,18 @@ class DataJudAutoCompleteService:
         Returns:
             Tuple[partes_encontradas, partes_nao_encontradas]
         """
+        from app.models.client import Client
+
         encontradas: List[ParteEncontrada] = []
         nao_encontradas: List[ParteSugestao] = []
+
+        # Buscar clientes da organização apenas uma vez fora do loop
+        clientes = (
+            db.query(Client)
+            .filter(Client.organization_id == organization_id)
+            .limit(500)
+            .all()
+        )
 
         for parte in partes_raw:
             nome = parte.get("nome", "")
@@ -720,11 +730,10 @@ class DataJudAutoCompleteService:
                     match_tipo = "documento"
 
             # 2. Fuzzy matching por nome (somente se sem documento ou não encontrado)
-            if client is None and nome:
+            if client is None and nome and clientes:
                 client, match_score = DataJudAutoCompleteService._fuzzy_match_client(
                     nome=nome,
-                    organization_id=organization_id,
-                    db=db,
+                    clientes=clientes,
                 )
                 if client:
                     match_tipo = "nome_fuzzy"
@@ -762,8 +771,7 @@ class DataJudAutoCompleteService:
     @staticmethod
     def _fuzzy_match_client(
         nome: str,
-        organization_id: int,
-        db: Session,
+        clientes: list,
     ):
         """
         Tenta encontrar um cliente por similaridade de nome (difflib).
@@ -772,17 +780,6 @@ class DataJudAutoCompleteService:
         Returns:
             Tuple[client | None, score | None]
         """
-        from app.models.client import Client
-        from sqlalchemy import func as sa_func
-
-        # Buscar todos os clientes da organização (com limite razoável para performance)
-        clientes = (
-            db.query(Client)
-            .filter(Client.organization_id == organization_id)
-            .limit(1000)
-            .all()
-        )
-
         if not clientes:
             return None, None
 
