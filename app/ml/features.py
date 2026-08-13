@@ -46,7 +46,7 @@ def build_feature_matrices(
     X_train = train_df[feature_cols]
     y_train = train_df["duracao_dias"]
 
-    X_test = test_df[feature_cols]
+    X_test = test_df.reindex(columns=X_train.columns, fill_value=0)
     y_test = test_df["duracao_dias"]
 
     X_train = X_train[numeric_cols + [c for c in X_train.columns if c not in numeric_cols]]

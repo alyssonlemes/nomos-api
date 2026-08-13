@@ -19,8 +19,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-
-
 def get_db():
     """
     Dependency para obter sessão do banco de dados

@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from app.api.deps import require_legal_actions_access
+from app.api.deps import get_db, require_legal_actions_access
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
-from app.schemas.jurimetria_chat import (
-    JurimetriaChatRequest,
-    JurimetriaChatResponse,
-    JurimetriaChatPrediction,
-    JurimetriaChatContext,
-)
+from app.schemas.jurimetria_chat import JurimetriaChatRequest, JurimetriaChatResponse
 
 router = APIRouter()
 
@@ -51,65 +47,25 @@ def prever_tempo_tramitacao(
     "/chat",
     response_model=JurimetriaChatResponse,
     status_code=status.HTTP_200_OK,
-    summary="Assistente de jurimetria por linguagem natural",
+    summary="Chat de jurimetria em linguagem natural"
 )
-def jurimetria_chat(
-    payload: JurimetriaChatRequest,
-    _current_user = Depends(require_legal_actions_access),
+def chat_jurimetria(
+    request: JurimetriaChatRequest,
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_legal_actions_access),
 ):
     """
-    Recebe uma mensagem em linguagem natural, extrai features e gera a previsão.
+    Recebe uma mensagem em texto livre e retorna uma resposta do assistente
+    de jurimetria. Extrai número de processo e tribunal do texto automaticamente.
+    Se encontrar número CNJ + tribunal, executa predição com scikit-learn via DataJud.
+    Se for pergunta sobre estatísticas, consulta o banco local.
     """
-    from app.services.jurimetria_prediction_service import JurimetriaPredictionService
+    from app.services.jurimetria_chat_service import JurimetriaChatService
 
     try:
-        context = payload.context.model_dump() if payload.context else None
-        extracted, missing = JurimetriaPredictionService.parse_chat_message(
-            payload.message,
-            context=context,
-        )
-
-        extracted_context = JurimetriaChatContext(**extracted)
-
-        if missing:
-            missing_list = ", ".join(missing)
-            message = (
-                "Preciso de mais informacoes para estimar o tempo. "
-                f"Informe: {missing_list}. "
-                "Exemplo: tribunal=tjsp e data_ajuizamento=2023-01-10."
-            )
-            return JurimetriaChatResponse(
-                message=message,
-                missing_fields=missing,
-                extracted_fields=extracted_context,
-            )
-
-        prediction = JurimetriaPredictionService.predict_from_features(
-            tribunal=extracted.get("tribunal"),
-            classe_processual=extracted.get("classe_processual"),
-            area_juridica_principal=extracted.get("area_juridica_principal"),
-            data_ajuizamento=extracted.get("data_ajuizamento"),
-        )
-
-        response_message = (
-            "Estimativa gerada. "
-            f"Tempo total previsto: {prediction['tempo_total_estimado_dias']} dias."
-        )
-
-        return JurimetriaChatResponse(
-            message=response_message,
-            prediction=JurimetriaChatPrediction(**prediction),
-            extracted_fields=extracted_context,
-        )
-    except RuntimeError as exc:
-        message = str(exc)
-        if "Modelo ativo" in message:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=message) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        return JurimetriaChatService.processar(request=request, db=db)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao processar jurimetria"
+            detail="Erro interno ao processar mensagem de jurimetria",
         ) from exc

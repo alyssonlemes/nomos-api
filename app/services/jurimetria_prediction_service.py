@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import urllib.error
@@ -8,7 +9,10 @@ from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 
+from app.core.config import settings
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
+
+logger = logging.getLogger(__name__)
 
 
 class JurimetriaPredictionService:
@@ -16,7 +20,7 @@ class JurimetriaPredictionService:
     Serviço de predição de tempo de tramitação para processos existentes no DataJud.
     """
 
-    REQUEST_TIMEOUT_SECONDS = 30
+    REQUEST_TIMEOUT_SECONDS = 15
 
     REQUIRED_CHAT_FIELDS = ("tribunal", "data_ajuizamento")
 
@@ -26,9 +30,9 @@ class JurimetriaPredictionService:
         from app.ml.features import build_inference_matrix
         from app.ml.model_registry import load_active_model
         
-        api_key = os.getenv("DATAJUD_API_KEY")
+        api_key = settings.DATAJUD_API_KEY
         if not api_key:
-            raise ValueError("DATAJUD_API_KEY não configurada no ambiente")
+            raise RuntimeError("DATAJUD_API_KEY não configurada no ambiente")
 
         model, metadata = load_active_model()
         if not model or not metadata:
@@ -199,10 +203,16 @@ class JurimetriaPredictionService:
                 return hits[0].get("_source") or {}
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode("utf-8") if exc.fp else ""
+            logger.error("DataJud HTTPError %s para %s/%s: %s", exc.code, tribunal, numero_processo, error_body)
             raise RuntimeError(f"Erro DataJud: HTTP {exc.code} - {error_body}") from exc
         except urllib.error.URLError as exc:
+            logger.error("DataJud URLError para %s/%s: %s", tribunal, numero_processo, exc.reason)
             raise RuntimeError(f"Erro de conexão com DataJud: {exc.reason}") from exc
+        except (TimeoutError, OSError) as exc:
+            logger.error("DataJud timeout/OSError para %s/%s: %s", tribunal, numero_processo, exc)
+            raise RuntimeError(f"Timeout ao conectar com DataJud: {exc}") from exc
         except json.JSONDecodeError as exc:
+            logger.error("DataJud resposta inválida para %s/%s", tribunal, numero_processo)
             raise RuntimeError("Resposta inválida do DataJud") from exc
 
     @staticmethod
