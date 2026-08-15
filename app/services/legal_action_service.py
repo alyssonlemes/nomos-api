@@ -203,6 +203,22 @@ class LegalActionService:
         db.add(db_action)
         db.commit()
         db.refresh(db_action)
+        
+        from app.models.processo_parte import ProcessoParte
+        from app.models.processo_movimento import ProcessoMovimento
+
+        if getattr(action_in, "partes", None):
+            for p in action_in.partes:
+                db_parte = ProcessoParte(**p.model_dump(), legal_action_id=db_action.id)
+                db.add(db_parte)
+                
+        if getattr(action_in, "movimentos", None):
+            for m in action_in.movimentos:
+                db_mov = ProcessoMovimento(**m.model_dump(), legal_action_id=db_action.id)
+                db.add(db_mov)
+                
+        if getattr(action_in, "partes", None) or getattr(action_in, "movimentos", None):
+            db.commit()
 
         for assigned_user in assigned_users:
             if user_id is not None and assigned_user.id == user_id:
@@ -273,8 +289,25 @@ class LegalActionService:
             ).first():
                 raise ValueError("Status jurídico não encontrado")
 
+        partes_data = update_data.pop("partes", None)
+        movimentos_data = update_data.pop("movimentos", None)
+
         for field, value in update_data.items():
             setattr(db_action, field, value)
+
+        if partes_data is not None:
+            from app.models.processo_parte import ProcessoParte
+            db.query(ProcessoParte).filter(ProcessoParte.legal_action_id == db_action.id).delete()
+            for p in partes_data:
+                db_parte = ProcessoParte(**p, legal_action_id=db_action.id)
+                db.add(db_parte)
+                
+        if movimentos_data is not None:
+            from app.models.processo_movimento import ProcessoMovimento
+            db.query(ProcessoMovimento).filter(ProcessoMovimento.legal_action_id == db_action.id).delete()
+            for m in movimentos_data:
+                db_mov = ProcessoMovimento(**m, legal_action_id=db_action.id)
+                db.add(db_mov)
 
         new_assigned_users = None
         new_user_ids_to_notify: set[int] = set()

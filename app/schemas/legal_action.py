@@ -38,9 +38,25 @@ class LegalActionBase(BaseModel):
     segredo_justica: Optional[bool] = False
 
 
+class ProcessoParteCreate(BaseModel):
+    polo: Optional[str] = None
+    tipo_participacao: Optional[str] = None
+    nome: str
+    documento: Optional[str] = None
+    oab: Optional[str] = None
+    client_id: Optional[int] = None
+
+class ProcessoMovimentoCreate(BaseModel):
+    codigo: Optional[str] = None
+    nome: str
+    data_hora: Optional[datetime] = None
+    complemento_json: Optional[str] = None
+
 class LegalActionCreate(LegalActionBase):
     """Schema para criação de ação jurídica"""
     client_id: int
+    partes: Optional[list[ProcessoParteCreate]] = None
+    movimentos: Optional[list[ProcessoMovimentoCreate]] = None
 
 
 class LegalActionUpdate(BaseModel):
