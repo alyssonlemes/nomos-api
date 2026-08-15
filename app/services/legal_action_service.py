@@ -1,5 +1,5 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 
 from app.models.client import Client
@@ -48,9 +48,9 @@ class LegalActionService:
         query = db.query(LegalAction).options(
             joinedload(LegalAction.action_type),
             joinedload(LegalAction.legal_status),
-            joinedload(LegalAction.assigned_users),
-            joinedload(LegalAction.partes),
-            joinedload(LegalAction.movimentos),
+            selectinload(LegalAction.assigned_users),
+            selectinload(LegalAction.partes),
+            selectinload(LegalAction.movimentos),
         ).filter(
             LegalAction.id == action_id,
             LegalAction.organization_id == organization_id,
@@ -122,14 +122,13 @@ class LegalActionService:
                 )
             )
         
-        total = query.distinct(LegalAction.id).count()
+        total = query.count()
         actions = (
             query.options(
                 joinedload(LegalAction.action_type),
                 joinedload(LegalAction.legal_status),
-                joinedload(LegalAction.assigned_users),
+                selectinload(LegalAction.assigned_users),
             )
-            .distinct(LegalAction.id)
             .offset(skip)
             .limit(limit)
             .all()
