@@ -72,6 +72,8 @@ class LegalActionUpdate(BaseModel):
     filing_date: Optional[date] = None
     closing_date: Optional[date] = None
     client_id: Optional[int] = None
+    partes: Optional[list[ProcessoParteCreate]] = None
+    movimentos: Optional[list[ProcessoMovimentoCreate]] = None
 
     # Campos DataJud opcionais
     tribunal: Optional[str] = None

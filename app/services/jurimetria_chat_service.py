@@ -79,14 +79,10 @@ AREA_KEYWORDS: dict[str, list[str]] = {
 HELP_MESSAGE = (
     "Olá! Sou o assistente de jurimetria da Nomos, alimentado por um modelo "
     "de Machine Learning (scikit-learn).\n\n"
-    "Posso te ajudar com:\n"
-    "• **Previsão de tempo de tramitação** — informe o número do processo (padrão CNJ) "
-    "e o tribunal. Ex: \"Quanto tempo falta para o processo "
-    "0001234-56.2022.8.26.0100 no TJSP?\"\n"
-    "• **Estatísticas gerais** — pergunte sobre tempo médio por área. "
-    "Ex: \"Qual o tempo médio de processos trabalhistas?\"\n"
-    "• **Comparativos por tribunal** — Ex: \"Como é a tramitação no TJRJ?\"\n\n"
-    "💡 **Para tentar outro ou analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*)."
+    "Posso te ajudar com a **Previsão de tempo de tramitação**.\n\n"
+    "Para isso, informe o número do processo (padrão CNJ) e o tribunal. "
+    "Ex: \"Quanto tempo falta para o processo 0001234-56.2022.8.26.0100 no TJSP?\"\n\n"
+    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*)."
 )
 
 
@@ -168,11 +164,24 @@ class JurimetriaChatService:
 
         # 4. Fallback: orientação para tentar outro processo ou tirar dúvidas
         if request.historico:
-            resposta_fallback = (
-                "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                "Ex: *5001234-56.2023.8.21.0001 no TJRS*\n\n"
-                "Você também pode fazer perguntas sobre estatísticas gerais por área ou tribunal (ex: *Qual o tempo médio de processos trabalhistas?*)."
+            ja_analisou_processo = any(
+                JurimetriaChatService._extrair_numero_processo(item.content)
+                for item in request.historico
+                if item.role == "user"
             )
+
+            if ja_analisou_processo:
+                resposta_fallback = (
+                    "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
+                    "Ex: *5001234-56.2023.8.21.0001 no TJRS*"
+                )
+            else:
+                resposta_fallback = (
+                    "Não entendi muito bem. Posso te ajudar com a previsão de tempo de tramitação.\n\n"
+                    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
+                    "Ex: *5001234-56.2023.8.21.0001 no TJRS*"
+                )
+
             return JurimetriaChatResponse(
                 resposta=resposta_fallback,
                 tipo="ajuda",
