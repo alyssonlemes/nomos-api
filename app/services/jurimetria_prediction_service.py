@@ -65,11 +65,16 @@ class JurimetriaPredictionService:
         tempo_total_estimado_dias = max(int(round(prediction)), 0)
 
         data_ajuizamento = features_input.get("data_ajuizamento")
-        tempo_decorrido_dias = JurimetriaPredictionService._calc_tempo_decorrido(data_ajuizamento)
+        data_fim = features_input.get("data_fim")
+        tempo_decorrido_dias = JurimetriaPredictionService._calc_tempo_decorrido(data_ajuizamento, data_fim)
 
         tempo_estimado_restante_dias = None
         if tempo_decorrido_dias is not None:
             tempo_estimado_restante_dias = max(tempo_total_estimado_dias - tempo_decorrido_dias, 0)
+
+        status = "finalizado" if data_fim else "em_andamento"
+        if status == "finalizado":
+            tempo_estimado_restante_dias = 0
 
         return JurimetriaPredictionResponse(
             numero_processo=numero_processo,
@@ -77,6 +82,7 @@ class JurimetriaPredictionService:
             tempo_total_estimado_dias=tempo_total_estimado_dias,
             tempo_decorrido_dias=tempo_decorrido_dias,
             tempo_estimado_restante_dias=tempo_estimado_restante_dias,
+            status=status,
             fonte_dados="DataJud"
         )
 
@@ -227,7 +233,7 @@ class JurimetriaPredictionService:
 
     @staticmethod
     def _normalize_for_features(tribunal: str, process_data: Dict[str, Any]) -> Dict[str, Any]:
-        from app.services.tpu_mapping import classificar_area_juridica
+        from app.services.tpu_mapping import classificar_area_juridica, identificar_movimento_encerramento
 
         classe_processual = JurimetriaPredictionService._extract_text_or_code(
             process_data.get("classeProcessual") or process_data.get("classe")
@@ -249,12 +255,19 @@ class JurimetriaPredictionService:
         )
         data_ajuizamento = JurimetriaPredictionService._parse_date(raw_date)
 
+        movimentos = process_data.get("movimentos") or process_data.get("movimentacoes") or []
+        mov_encerramento = identificar_movimento_encerramento(movimentos)
+        data_fim = None
+        if mov_encerramento:
+            data_fim = JurimetriaPredictionService._parse_date(mov_encerramento.get("dataHora"))
+
         return {
             "tribunal": tribunal,
             "classe_processual": classe_processual,
             "assunto_codigo": assunto_codigo,
             "area_juridica_principal": area_juridica_principal,
-            "data_ajuizamento": data_ajuizamento
+            "data_ajuizamento": data_ajuizamento,
+            "data_fim": data_fim
         }
 
     @staticmethod
@@ -295,10 +308,11 @@ class JurimetriaPredictionService:
         return None
 
     @staticmethod
-    def _calc_tempo_decorrido(data_ajuizamento: date) -> Optional[int]:
+    def _calc_tempo_decorrido(data_ajuizamento: date, data_fim: Optional[date] = None) -> Optional[int]:
         if not data_ajuizamento:
             return None
-        return (date.today() - data_ajuizamento).days
+        end_date = data_fim if data_fim else date.today()
+        return (end_date - data_ajuizamento).days
 
     @staticmethod
     def _extract_text_or_code(value: Any) -> Optional[str]:

@@ -82,7 +82,7 @@ HELP_MESSAGE = (
     "Posso te ajudar com a **Previsão de tempo de tramitação**.\n\n"
     "Para isso, informe o número do processo (padrão CNJ) e o tribunal. "
     "Ex: \"Quanto tempo falta para o processo 0001234-56.2022.8.26.0100 no TJSP?\"\n\n"
-    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*)."
+    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *1001234-56.2023.8.26.0100 no TJSP*)."
 )
 
 
@@ -173,13 +173,13 @@ class JurimetriaChatService:
             if ja_analisou_processo:
                 resposta_fallback = (
                     "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                    "Ex: *5001234-56.2023.8.21.0001 no TJRS*"
+                    "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
                 )
             else:
                 resposta_fallback = (
                     "Não entendi muito bem. Posso te ajudar com a previsão de tempo de tramitação.\n\n"
                     "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                    "Ex: *5001234-56.2023.8.21.0001 no TJRS*"
+                    "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
                 )
 
             return JurimetriaChatResponse(
@@ -244,7 +244,7 @@ class JurimetriaChatService:
                 resposta=(
                     f"Encontrei o número do processo **{numero_processo}**, mas preciso saber "
                     "em qual tribunal ele tramita para fazer a predição.\n\n"
-                    "Por favor, informe o tribunal. Ex: *TJSP*, *TRT2*, *TRF3*."
+                    "Por favor, informe o tribunal. Ex: *TJSP*."
                 ),
                 tipo="texto",
                 numero_processo=numero_processo,
@@ -335,23 +335,31 @@ class JurimetriaChatService:
 
         if decorrido is not None:
             decorrido_anos = decorrido / 365
-            partes.append(
-                f"⏳ **Tempo já decorrido:** {decorrido} dias "
-                f"(~{decorrido_anos:.1f} ano{'s' if decorrido_anos != 1 else ''})"
-            )
+            if getattr(resultado, "status", "em_andamento") == "finalizado":
+                partes.append(
+                    f"⌛ **Tempo decorrido (já finalizado):** {decorrido} dias "
+                    f"(~{decorrido_anos:.1f} ano{'s' if round(decorrido_anos, 1) != 1.0 else ''})"
+                )
+            else:
+                partes.append(
+                    f"⏳ **Tempo já decorrido:** {decorrido} dias "
+                    f"(~{decorrido_anos:.1f} ano{'s' if round(decorrido_anos, 1) != 1.0 else ''})"
+                )
 
-        if restante is not None:
+        if getattr(resultado, "status", "em_andamento") == "finalizado":
+            partes.append("✅ **Este processo já foi finalizado!**")
+        elif restante is not None:
             restante_anos = restante / 365
             if restante == 0:
                 partes.append("✅ **O processo pode já estar próximo da conclusão** com base no tempo estimado.")
             else:
                 partes.append(
                     f"🔮 **Tempo restante estimado:** {restante} dias "
-                    f"(~{restante_anos:.1f} ano{'s' if restante_anos != 1 else ''})"
+                    f"(~{restante_anos:.1f} ano{'s' if round(restante_anos, 1) != 1.0 else ''})"
                 )
 
         partes.append("\n_Previsão baseada em dados históricos do DataJud e modelo treinado com scikit-learn._")
-        partes.append("\n💡 **Para tentar outro processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *5001234-56.2023.8.21.0001 no TJRS*).")
+        partes.append("\n💡 **Para tentar outro processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *1001234-56.2023.8.26.0100 no TJSP*).")
 
         return JurimetriaChatResponse(
             resposta="\n".join(partes),
