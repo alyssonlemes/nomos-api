@@ -171,16 +171,36 @@ class JurimetriaChatService:
             )
 
             if ja_analisou_processo:
-                resposta_fallback = (
-                    "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                    "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
-                )
+                # Verificar se parece um CNJ mal formatado
+                parece_cnj = re.search(r"\d{3,7}-\d{1,2}\.\d{4}\.\d{1,2}\.\d{1,2}\.\d{1,4}", mensagem)
+                parece_cnj_raw = re.search(r"\b\d{14,25}\b", mensagem)
+                
+                if parece_cnj or parece_cnj_raw:
+                    resposta_fallback = (
+                        "Notei que você enviou um número de processo, mas ele não parece ter exatamente 20 dígitos no padrão CNJ. "
+                        "Verifique se não faltou algum número (como o zero no final) e tente novamente.\n"
+                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1001234-56.2023.8.26.0100*"
+                    )
+                else:
+                    resposta_fallback = (
+                        "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
+                        "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
+                    )
             else:
-                resposta_fallback = (
-                    "Não entendi muito bem. Posso te ajudar com a previsão de tempo de tramitação.\n\n"
-                    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                    "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
-                )
+                parece_cnj = re.search(r"\d{3,7}-\d{1,2}\.\d{4}\.\d{1,2}\.\d{1,2}\.\d{1,4}", mensagem)
+                parece_cnj_raw = re.search(r"\b\d{14,25}\b", mensagem)
+                if parece_cnj or parece_cnj_raw:
+                    resposta_fallback = (
+                        "Notei que você enviou um número de processo, mas ele não parece ter exatamente 20 dígitos no padrão CNJ. "
+                        "Verifique se não faltou algum número (como o zero no final) e tente novamente.\n"
+                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1001234-56.2023.8.26.0100*"
+                    )
+                else:
+                    resposta_fallback = (
+                        "Não entendi muito bem. Posso te ajudar com a previsão de tempo de tramitação.\n\n"
+                        "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
+                        "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
+                    )
 
             return JurimetriaChatResponse(
                 resposta=resposta_fallback,

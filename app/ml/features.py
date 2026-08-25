@@ -22,6 +22,10 @@ def build_feature_matrices(
     categorical_cols = ["tribunal", "classe_processual", "area_juridica_principal"]
     numeric_cols = ["ano_ajuizamento", "mes_ajuizamento"]
 
+    for col in categorical_cols:
+        train_df[col] = train_df[col].astype(str).str.lower().str.strip()
+        test_df[col] = test_df[col].astype(str).str.lower().str.strip()
+
     train_df[categorical_cols] = train_df[categorical_cols].fillna("desconhecido")
     test_df[categorical_cols] = test_df[categorical_cols].fillna("desconhecido")
 
@@ -65,10 +69,12 @@ def build_inference_matrix(
     df = pd.DataFrame([features_input])
     df = _prepare_dates(df)
 
-    categorical_cols = ["tribunal", "classe_processual", "area_juridica_principal", "assunto_codigo"]
+    categorical_cols = ["tribunal", "classe_processual", "area_juridica_principal"]
     for col in categorical_cols:
         if col not in df.columns:
             df[col] = "desconhecido"
+        else:
+            df[col] = df[col].astype(str).str.lower().str.strip()
 
     df[categorical_cols] = df[categorical_cols].fillna("desconhecido")
     df = pd.get_dummies(df, columns=categorical_cols, prefix=categorical_cols, dtype=int)

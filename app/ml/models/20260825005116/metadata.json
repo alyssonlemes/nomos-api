@@ -1,0 +1,28 @@
+{
+  "version": "20260825005116",
+  "trained_at": "2026-08-25T00:51:16.590407",
+  "total_records": 2862,
+  "metrics": {
+    "mae": 69.18481312718991,
+    "rmse": 87.92133985262691
+  },
+  "feature_columns": [
+    "ano_ajuizamento",
+    "mes_ajuizamento",
+    "tribunal_tjsp",
+    "classe_processual_1208",
+    "classe_processual_12394",
+    "classe_processual_1707",
+    "classe_processual_198",
+    "classe_processual_272",
+    "classe_processual_279",
+    "classe_processual_280",
+    "classe_processual_282",
+    "classe_processual_283",
+    "classe_processual_417",
+    "classe_processual_420",
+    "area_juridica_principal_criminal",
+    "area_juridica_principal_cível"
+  ],
+  "active": true
+}
