@@ -32,8 +32,9 @@ from app.models.jurimetria_dataset import JurimetriaDataset
 
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url with the one from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Override sqlalchemy.url with the one from settings.
+# ConfigParser treats % as interpolation, so escape it for URLs with encoded chars.
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:
