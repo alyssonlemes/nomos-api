@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
-from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse
+from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse, ClientStatus
 from app.services.client_service import ClientService
 from app.api.deps import get_current_active_user, get_user_organization, require_write_access, get_data_filter_user_id
 
@@ -42,14 +42,15 @@ def create_client(
 )
 def list_clients(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = Query(None),
+    status: Optional[ClientStatus] = Query(None, description="Filtrar por status"),
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
-    Lista todos os clientes da organização
+    Lista os clientes da organização, de 10 em 10 por padrão.
     
     - ADMIN/OWNER: Veem todos os clientes
     - MEMBER/VIEWER/ASSISTANT: Veem apenas seus clientes
@@ -60,7 +61,8 @@ def list_clients(
         skip=skip,
         limit=limit,
         search=search,
-        user_id=filter_user_id
+        user_id=filter_user_id,
+        status=status.value if status else None,
     )
     return ClientListResponse(total=total, clients=clients)
 

@@ -153,5 +153,5 @@ def list_organization_users(
             detail="Você não possui uma organização"
         )
     
-    users = UserService.get_all(db, organization_id=current_user.organization_id)
+    users, _total = UserService.get_all(db, organization_id=current_user.organization_id, skip=0, limit=500)
     return users

@@ -1,5 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 
 from app.models.user import User
 from app.models.invitation import Invitation, InvitationStatus
@@ -26,12 +27,33 @@ class UserService:
         return db.query(User).filter(User.email == email).first()
     
     @staticmethod
-    def get_all(db: Session, organization_id: int = None, skip: int = 0, limit: int = 100) -> List[User]:
-        """Lista todos os usuários com paginação (opcionalmente filtrados por organização)"""
+    def get_all(
+        db: Session,
+        organization_id: int = None,
+        skip: int = 0,
+        limit: int = 10,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        role: Optional[str] = None,
+    ) -> tuple[List[User], int]:
+        """Lista usuários com paginação, busca e filtros."""
         query = db.query(User)
         if organization_id:
             query = query.filter(User.organization_id == organization_id)
-        return query.offset(skip).limit(limit).all()
+
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            query = query.filter(or_(User.full_name.ilike(term), User.email.ilike(term)))
+
+        if is_active is not None:
+            query = query.filter(User.is_active == is_active)
+
+        if role and role.strip():
+            query = query.filter(func.upper(User.role) == role.strip().upper())
+
+        total = query.count()
+        users = query.order_by(User.full_name.asc()).offset(skip).limit(limit).all()
+        return users, total
     
     @staticmethod
     def create(db: Session, user_in: UserCreate) -> User:

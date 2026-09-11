@@ -79,8 +79,9 @@ class LegalActionService:
         db: Session,
         organization_id: int,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 10,
         legal_status_id: Optional[int] = None,
+        legal_status_code: Optional[str] = None,
         client_id: Optional[int] = None,
         search: Optional[str] = None,
         user_id: Optional[int] = None
@@ -109,6 +110,11 @@ class LegalActionService:
         
         if legal_status_id:
             query = query.filter(LegalAction.legal_status_id == legal_status_id)
+        elif legal_status_code:
+            status_ids = db.query(LegalActionStatus.id).filter(
+                LegalActionStatus.code.ilike(legal_status_code.strip())
+            )
+            query = query.filter(LegalAction.legal_status_id.in_(status_ids))
         
         if client_id:
             query = query.filter(LegalAction.client_id == client_id)

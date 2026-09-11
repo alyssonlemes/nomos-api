@@ -80,8 +80,9 @@ def create_legal_action(
 )
 def list_legal_actions(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(10, ge=1, le=500),
     legal_status_id: Optional[int] = Query(None, description="Filtrar por status jurídico (ID)"),
+    legal_status: Optional[str] = Query(None, description="Filtrar por código do status jurídico"),
     client_id: Optional[int] = Query(None, description="Filtrar por cliente"),
     search: Optional[str] = Query(None, description="Buscar por número ou título"),
     db: Session = Depends(get_db),
@@ -109,6 +110,7 @@ def list_legal_actions(
         skip=skip,
         limit=limit,
         legal_status_id=legal_status_id,
+        legal_status_code=legal_status,
         client_id=client_id,
         search=search,
         user_id=filter_user_id

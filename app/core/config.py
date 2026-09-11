@@ -39,17 +39,25 @@ class Settings(BaseSettings):
     # CORS — JSON array ou lista separada por vírgula
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:8080",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "http://127.0.0.1:8080",
     ]
 
-    # Libera previews/deploys no Render sem precisar listar cada URL
-    CORS_ALLOW_ORIGIN_REGEX: Optional[str] = r"https://.*\.onrender\.com"
+    # Libera previews no Render e qualquer porta local do Vite
+    CORS_ALLOW_ORIGIN_REGEX: Optional[str] = (
+        r"https://.*\.onrender\.com|http://(localhost|127\.0\.0\.1):\d+"
+    )
 
     @field_validator("CORS_ALLOW_ORIGIN_REGEX", mode="before")
     @classmethod

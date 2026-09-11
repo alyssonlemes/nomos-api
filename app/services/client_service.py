@@ -42,11 +42,12 @@ class ClientService:
         db: Session,
         organization_id: int,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 10,
         search: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        status: Optional[str] = None,
     ) -> tuple[List[Client], int]:
-        """Lista clientes da organização com paginação e busca
+        """Lista clientes da organização com paginação, busca e filtro de status
         
         Args:
             db: Sessão do banco
@@ -55,11 +56,15 @@ class ClientService:
             limit: Limite de registros
             search: Termo de busca
             user_id: Se fornecido, filtra apenas clientes criados por este usuário
+            status: Se fornecido, filtra pelo status do cliente
         """
         query = db.query(Client).filter(Client.organization_id == organization_id)
         
         if user_id is not None:
             query = query.filter(Client.user_id == user_id)
+        
+        if status:
+            query = query.filter(Client.status == status)
         
         if search:
             search_term = f"%{search}%"
