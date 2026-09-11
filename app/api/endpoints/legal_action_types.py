@@ -48,11 +48,15 @@ def list_legal_action_types(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = Query(None, description="Buscar por nome ou código"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_legal_actions_access),
 ):
     """Lista todos os tipos de ação jurídica com paginação."""
-    items, total = LegalActionTypeService.get_all(db, skip=skip, limit=limit, search=search)
+    items, total = LegalActionTypeService.get_all(
+        db, skip=skip, limit=limit, search=search, sort_by=sort_by, sort_dir=sort_dir
+    )
     return LegalActionTypeListResponse(total=total, legal_action_types=items)
 
 

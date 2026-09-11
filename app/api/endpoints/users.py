@@ -73,6 +73,8 @@ def list_users(
     search: Optional[str] = Query(None, description="Buscar por nome ou e-mail"),
     is_active: Optional[bool] = Query(None, description="Filtrar por status ativo/inativo"),
     role: Optional[str] = Query(None, description="Filtrar por perfil"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -93,6 +95,8 @@ def list_users(
         search=search,
         is_active=is_active,
         role=role,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
     return UserListResponse(total=total, users=users, skip=skip, limit=limit)
 

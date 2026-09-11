@@ -9,6 +9,7 @@ from app.models.legal_action_status import LegalActionStatus
 from app.models.user import User
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
 from app.services.notification_service import NotificationService
+from app.core.listing import apply_listing_sort
 
 
 class LegalActionService:
@@ -84,7 +85,9 @@ class LegalActionService:
         legal_status_code: Optional[str] = None,
         client_id: Optional[int] = None,
         search: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> Tuple[List[LegalAction], int]:
         """Lista todas as ações jurídicas da organização com filtros
         
@@ -129,6 +132,28 @@ class LegalActionService:
             )
         
         total = query.count()
+
+        sort_columns = {
+            "number": LegalAction.number,
+            "title": LegalAction.title,
+            "created_at": LegalAction.created_at,
+        }
+        if sort_by == "action_type":
+            query = query.outerjoin(LegalActionType, LegalAction.action_type_id == LegalActionType.id)
+            sort_columns["action_type"] = LegalActionType.name
+        elif sort_by in ("legal_status", "status"):
+            query = query.outerjoin(LegalActionStatus, LegalAction.legal_status_id == LegalActionStatus.id)
+            sort_columns["legal_status"] = LegalActionStatus.name
+            sort_columns["status"] = LegalActionStatus.name
+
+        query = apply_listing_sort(
+            query,
+            columns=sort_columns,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="created_at",
+            tiebreaker=LegalAction.id,
+        )
         actions = (
             query.options(
                 joinedload(LegalAction.action_type),

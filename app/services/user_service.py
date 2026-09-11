@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.user import UserCreate, UserUpdate, UserRoleUpdate
 from app.core.security import get_password_hash, verify_password
+from app.core.listing import apply_listing_sort
 
 
 class UserService:
@@ -35,8 +36,10 @@ class UserService:
         search: Optional[str] = None,
         is_active: Optional[bool] = None,
         role: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> tuple[List[User], int]:
-        """Lista usuários com paginação, busca e filtros."""
+        """Lista usuários com paginação, busca, filtros e ordenação no banco."""
         query = db.query(User)
         if organization_id:
             query = query.filter(User.organization_id == organization_id)
@@ -52,7 +55,23 @@ class UserService:
             query = query.filter(func.upper(User.role) == role.strip().upper())
 
         total = query.count()
-        users = query.order_by(User.full_name.asc()).offset(skip).limit(limit).all()
+        query = apply_listing_sort(
+            query,
+            columns={
+                "full_name": User.full_name,
+                "user": User.full_name,
+                "email": User.email,
+                "role": User.role,
+                "is_active": User.is_active,
+                "status": User.is_active,
+                "created_at": User.created_at,
+            },
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="created_at",
+            tiebreaker=User.id,
+        )
+        users = query.offset(skip).limit(limit).all()
         return users, total
     
     @staticmethod

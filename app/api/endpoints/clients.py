@@ -45,6 +45,8 @@ def list_clients(
     limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = Query(None),
     status: Optional[ClientStatus] = Query(None, description="Filtrar por status"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
@@ -63,6 +65,8 @@ def list_clients(
         search=search,
         user_id=filter_user_id,
         status=status.value if status else None,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
     return ClientListResponse(total=total, clients=clients)
 

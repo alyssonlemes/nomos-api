@@ -85,6 +85,8 @@ def list_legal_actions(
     legal_status: Optional[str] = Query(None, description="Filtrar por código do status jurídico"),
     client_id: Optional[int] = Query(None, description="Filtrar por cliente"),
     search: Optional[str] = Query(None, description="Buscar por número ou título"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_legal_actions_access),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
@@ -113,7 +115,9 @@ def list_legal_actions(
         legal_status_code=legal_status,
         client_id=client_id,
         search=search,
-        user_id=filter_user_id
+        user_id=filter_user_id,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
     
     return LegalActionListResponse(total=total, legal_actions=actions)
