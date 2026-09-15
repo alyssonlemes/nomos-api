@@ -24,6 +24,7 @@ class LegalActionBase(BaseModel):
     )
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
+    closing_date: Optional[date] = None
     tribunal: Optional[str] = None
     comarca: Optional[str] = None
     vara: Optional[str] = None

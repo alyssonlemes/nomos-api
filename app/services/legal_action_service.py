@@ -1,4 +1,5 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
+from datetime import date, datetime
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 
@@ -11,6 +12,7 @@ from app.models.processo_parte import ProcessoParte
 from app.models.user import User
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
 from app.services.notification_service import NotificationService
+from app.services.tpu_mapping import identificar_movimento_encerramento
 from app.core.listing import apply_listing_sort
 
 
@@ -37,6 +39,33 @@ class LegalActionService:
         if len(users) != len(unique_ids):
             raise ValueError("Um ou mais usuarios nao pertencem a organizacao")
         return users
+
+    @staticmethod
+    def _infer_closing_date(movimentos: Optional[List[Any]]) -> Optional[date]:
+        if not movimentos:
+            return None
+
+        payload = []
+        for movimento in movimentos:
+            data = movimento.model_dump() if hasattr(movimento, "model_dump") else dict(movimento)
+            payload.append({
+                "nome": data.get("nome"),
+                "codigo": data.get("codigo"),
+                "dataHora": data.get("data_hora") or data.get("dataHora"),
+            })
+
+        found = identificar_movimento_encerramento(payload)
+        raw = (found or {}).get("dataHora")
+        if not raw:
+            return None
+        if isinstance(raw, datetime):
+            return raw.date()
+        if isinstance(raw, date):
+            return raw
+        try:
+            return datetime.fromisoformat(str(raw).replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
     
     @staticmethod
     def get_by_id(db: Session, action_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[LegalAction]:
@@ -212,6 +241,7 @@ class LegalActionService:
             legal_status_id=status_id,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
+            closing_date=LegalActionService._infer_closing_date(action_in.movimentos),
             tribunal=action_in.tribunal,
             comarca=action_in.comarca,
             vara=action_in.vara,
@@ -316,6 +346,7 @@ class LegalActionService:
 
         partes_data = update_data.pop("partes", None)
         movimentos_data = update_data.pop("movimentos", None)
+        update_data.pop("closing_date", None)
 
         for field, value in update_data.items():
             setattr(db_action, field, value)
@@ -329,6 +360,7 @@ class LegalActionService:
             db_action.movimentos.clear()
             for m in movimentos_data:
                 db_action.movimentos.append(ProcessoMovimento(**m))
+            db_action.closing_date = LegalActionService._infer_closing_date(movimentos_data)
 
         new_assigned_users = None
         new_user_ids_to_notify: set[int] = set()
