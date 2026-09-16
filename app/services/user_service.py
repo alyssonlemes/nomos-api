@@ -1,10 +1,12 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 
 from app.models.user import User
 from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.user import UserCreate, UserUpdate, UserRoleUpdate
 from app.core.security import get_password_hash, verify_password
+from app.core.listing import apply_listing_sort
 
 
 class UserService:
@@ -26,12 +28,51 @@ class UserService:
         return db.query(User).filter(User.email == email).first()
     
     @staticmethod
-    def get_all(db: Session, organization_id: int = None, skip: int = 0, limit: int = 100) -> List[User]:
-        """Lista todos os usuários com paginação (opcionalmente filtrados por organização)"""
+    def get_all(
+        db: Session,
+        organization_id: int = None,
+        skip: int = 0,
+        limit: int = 10,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        role: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
+    ) -> tuple[List[User], int]:
+        """Lista usuários com paginação, busca, filtros e ordenação no banco."""
         query = db.query(User)
         if organization_id:
             query = query.filter(User.organization_id == organization_id)
-        return query.offset(skip).limit(limit).all()
+
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            query = query.filter(or_(User.full_name.ilike(term), User.email.ilike(term)))
+
+        if is_active is not None:
+            query = query.filter(User.is_active == is_active)
+
+        if role and role.strip():
+            query = query.filter(func.upper(User.role) == role.strip().upper())
+
+        total = query.count()
+        query = apply_listing_sort(
+            query,
+            columns={
+                "full_name": User.full_name,
+                "user": User.full_name,
+                "email": User.email,
+                "role": User.role,
+                "is_active": User.is_active,
+                "status": User.is_active,
+                "created_at": User.created_at,
+            },
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="created_at",
+            tiebreaker=User.id,
+        )
+        users = query.offset(skip).limit(limit).all()
+        return users, total
     
     @staticmethod
     def create(db: Session, user_in: UserCreate) -> User:

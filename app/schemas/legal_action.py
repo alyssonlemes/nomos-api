@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, Any
 from datetime import datetime, date
 
 from app.schemas.legal_action_type import LegalActionTypeResponse
@@ -24,6 +24,7 @@ class LegalActionBase(BaseModel):
     )
     court_name: Optional[str] = None
     filing_date: Optional[date] = None
+    closing_date: Optional[date] = None
     tribunal: Optional[str] = None
     comarca: Optional[str] = None
     vara: Optional[str] = None
@@ -52,9 +53,17 @@ class ProcessoMovimentoCreate(BaseModel):
     data_hora: Optional[datetime] = None
     complemento_json: Optional[str] = None
 
+    @field_validator("codigo", mode="before")
+    @classmethod
+    def coerce_codigo(cls, value: Any) -> Optional[str]:
+        if value is None or value == "":
+            return None
+        return str(value)
+
 class LegalActionCreate(LegalActionBase):
     """Schema para criação de ação jurídica"""
     client_id: int
+    legal_status: Optional[str] = None
     partes: Optional[list[ProcessoParteCreate]] = None
     movimentos: Optional[list[ProcessoMovimentoCreate]] = None
 

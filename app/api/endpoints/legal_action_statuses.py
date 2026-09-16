@@ -63,12 +63,16 @@ def create_legal_action_status(
 )
 def list_legal_action_statuses(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = Query(None, description="Buscar por nome ou código"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_legal_actions_access),
 ):
-    items, total = LegalActionStatusService.get_all(db, skip=skip, limit=limit, search=search)
+    items, total = LegalActionStatusService.get_all(
+        db, skip=skip, limit=limit, search=search, sort_by=sort_by, sort_dir=sort_dir
+    )
     return LegalActionStatusListResponse(total=total, legal_action_statuses=items)
 
 

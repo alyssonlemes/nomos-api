@@ -1,9 +1,6 @@
-import json
 import logging
 import os
 import re
-import urllib.error
-import urllib.request
 from datetime import date, datetime
 from typing import Any, Dict, Optional, Tuple
 
@@ -20,7 +17,7 @@ class JurimetriaPredictionService:
     Serviço de predição de tempo de tramitação para processos existentes no DataJud.
     """
 
-    REQUEST_TIMEOUT_SECONDS = 15
+    REQUEST_TIMEOUT_SECONDS = 60
 
     REQUIRED_CHAT_FIELDS = ("tribunal", "data_ajuizamento")
 
@@ -180,7 +177,9 @@ class JurimetriaPredictionService:
 
     @staticmethod
     def _fetch_process_data(api_key: str, tribunal: str, numero_processo: str) -> Optional[Dict[str, Any]]:
-        url = f"https://api-publica.datajud.cnj.jus.br/api_publica_{tribunal}/_search"
+        from app.services.datajud_batch_service import DataJudBatchService
+
+        url = f"https://api-publica.datajud.cnj.jus.br/api_publica_{tribunal.lower()}/_search"
         limpo = re.sub(r"\D", "", numero_processo)
         should_clauses = [
             {"term": {"numeroProcesso.keyword": numero_processo}},
@@ -194,42 +193,40 @@ class JurimetriaPredictionService:
 
         payload = {
             "size": 1,
+            "track_total_hits": False,
+            "_source": [
+                "numeroProcesso",
+                "classeProcessual",
+                "classe",
+                "assuntos",
+                "assunto",
+                "dataAjuizamento",
+                "dataHoraDistribuicao",
+                "dataDistribuicao",
+                "movimentos.codigo",
+                "movimentos.nome",
+                "movimentos.dataHora",
+                "movimentacoes.codigo",
+                "movimentacoes.nome",
+                "movimentacoes.dataHora",
+            ],
             "query": {
                 "bool": {
                     "should": should_clauses,
                     "minimum_should_match": 1,
                 }
-            }
+            },
         }
 
-        data = json.dumps(payload).encode("utf-8")
-        headers = {
-            "Authorization": f"ApiKey {api_key}",
-            "Content-Type": "application/json"
-        }
-        request = urllib.request.Request(url, data=data, headers=headers, method="POST")
-
-        try:
-            with urllib.request.urlopen(request, timeout=JurimetriaPredictionService.REQUEST_TIMEOUT_SECONDS) as response:
-                body = response.read().decode("utf-8")
-                response_data = json.loads(body)
-                hits = response_data.get("hits", {}).get("hits", [])
-                if not hits:
-                    return None
-                return hits[0].get("_source") or {}
-        except urllib.error.HTTPError as exc:
-            error_body = exc.read().decode("utf-8") if exc.fp else ""
-            logger.error("DataJud HTTPError %s para %s/%s: %s", exc.code, tribunal, numero_processo, error_body)
-            raise RuntimeError(f"Erro DataJud: HTTP {exc.code} - {error_body}") from exc
-        except urllib.error.URLError as exc:
-            logger.error("DataJud URLError para %s/%s: %s", tribunal, numero_processo, exc.reason)
-            raise RuntimeError(f"Erro de conexão com DataJud: {exc.reason}") from exc
-        except (TimeoutError, OSError) as exc:
-            logger.error("DataJud timeout/OSError para %s/%s: %s", tribunal, numero_processo, exc)
-            raise RuntimeError(f"Timeout ao conectar com DataJud: {exc}") from exc
-        except json.JSONDecodeError as exc:
-            logger.error("DataJud resposta inválida para %s/%s", tribunal, numero_processo)
-            raise RuntimeError("Resposta inválida do DataJud") from exc
+        response_data = DataJudBatchService._post_json(
+            url=url,
+            api_key=api_key,
+            payload=payload,
+        )
+        hits = response_data.get("hits", {}).get("hits", [])
+        if not hits:
+            return None
+        return hits[0].get("_source") or {}
 
     @staticmethod
     def _normalize_for_features(tribunal: str, process_data: Dict[str, Any]) -> Dict[str, Any]:

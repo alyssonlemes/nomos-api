@@ -1,4 +1,5 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
+from datetime import date, datetime
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 
@@ -6,9 +7,13 @@ from app.models.client import Client
 from app.models.legal_action import LegalAction
 from app.models.legal_action_type import LegalActionType
 from app.models.legal_action_status import LegalActionStatus
+from app.models.processo_movimento import ProcessoMovimento
+from app.models.processo_parte import ProcessoParte
 from app.models.user import User
 from app.schemas.legal_action import LegalActionCreate, LegalActionUpdate
 from app.services.notification_service import NotificationService
+from app.services.tpu_mapping import identificar_movimento_encerramento
+from app.core.listing import apply_listing_sort
 
 
 class LegalActionService:
@@ -34,6 +39,33 @@ class LegalActionService:
         if len(users) != len(unique_ids):
             raise ValueError("Um ou mais usuarios nao pertencem a organizacao")
         return users
+
+    @staticmethod
+    def _infer_closing_date(movimentos: Optional[List[Any]]) -> Optional[date]:
+        if not movimentos:
+            return None
+
+        payload = []
+        for movimento in movimentos:
+            data = movimento.model_dump() if hasattr(movimento, "model_dump") else dict(movimento)
+            payload.append({
+                "nome": data.get("nome"),
+                "codigo": data.get("codigo"),
+                "dataHora": data.get("data_hora") or data.get("dataHora"),
+            })
+
+        found = identificar_movimento_encerramento(payload)
+        raw = (found or {}).get("dataHora")
+        if not raw:
+            return None
+        if isinstance(raw, datetime):
+            return raw.date()
+        if isinstance(raw, date):
+            return raw
+        try:
+            return datetime.fromisoformat(str(raw).replace("Z", "+00:00")).date()
+        except ValueError:
+            return None
     
     @staticmethod
     def get_by_id(db: Session, action_id: int, organization_id: int, user_id: Optional[int] = None) -> Optional[LegalAction]:
@@ -79,11 +111,14 @@ class LegalActionService:
         db: Session,
         organization_id: int,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 10,
         legal_status_id: Optional[int] = None,
+        legal_status_code: Optional[str] = None,
         client_id: Optional[int] = None,
         search: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> Tuple[List[LegalAction], int]:
         """Lista todas as ações jurídicas da organização com filtros
         
@@ -109,6 +144,11 @@ class LegalActionService:
         
         if legal_status_id:
             query = query.filter(LegalAction.legal_status_id == legal_status_id)
+        elif legal_status_code:
+            status_ids = db.query(LegalActionStatus.id).filter(
+                LegalActionStatus.code.ilike(legal_status_code.strip())
+            )
+            query = query.filter(LegalAction.legal_status_id.in_(status_ids))
         
         if client_id:
             query = query.filter(LegalAction.client_id == client_id)
@@ -123,6 +163,28 @@ class LegalActionService:
             )
         
         total = query.count()
+
+        sort_columns = {
+            "number": LegalAction.number,
+            "title": LegalAction.title,
+            "created_at": LegalAction.created_at,
+        }
+        if sort_by == "action_type":
+            query = query.outerjoin(LegalActionType, LegalAction.action_type_id == LegalActionType.id)
+            sort_columns["action_type"] = LegalActionType.name
+        elif sort_by in ("legal_status", "status"):
+            query = query.outerjoin(LegalActionStatus, LegalAction.legal_status_id == LegalActionStatus.id)
+            sort_columns["legal_status"] = LegalActionStatus.name
+            sort_columns["status"] = LegalActionStatus.name
+
+        query = apply_listing_sort(
+            query,
+            columns=sort_columns,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="created_at",
+            tiebreaker=LegalAction.id,
+        )
         actions = (
             query.options(
                 joinedload(LegalAction.action_type),
@@ -154,6 +216,11 @@ class LegalActionService:
 
         # Status: se não vier, usar pre_trial por padrão
         status_id = action_in.legal_status_id
+        if status_id is None and action_in.legal_status:
+            status = db.query(LegalActionStatus).filter(LegalActionStatus.code == action_in.legal_status).first()
+            if not status:
+                raise ValueError("Status jurídico não encontrado (código inválido)")
+            status_id = status.id
         if status_id is None:
             default_status = db.query(LegalActionStatus).filter(LegalActionStatus.code == "pre_trial").first()
             if not default_status:
@@ -174,6 +241,7 @@ class LegalActionService:
             legal_status_id=status_id,
             court_name=action_in.court_name,
             filing_date=action_in.filing_date,
+            closing_date=LegalActionService._infer_closing_date(action_in.movimentos),
             tribunal=action_in.tribunal,
             comarca=action_in.comarca,
             vara=action_in.vara,
@@ -199,26 +267,13 @@ class LegalActionService:
             user_ids=list(assigned_ids),
         )
         db_action.assigned_users = assigned_users
-        
+        if action_in.partes:
+            db_action.partes = [ProcessoParte(**p.model_dump()) for p in action_in.partes]
+        if action_in.movimentos:
+            db_action.movimentos = [ProcessoMovimento(**m.model_dump()) for m in action_in.movimentos]
+
         db.add(db_action)
         db.commit()
-        db.refresh(db_action)
-        
-        from app.models.processo_parte import ProcessoParte
-        from app.models.processo_movimento import ProcessoMovimento
-
-        if getattr(action_in, "partes", None):
-            for p in action_in.partes:
-                db_parte = ProcessoParte(**p.model_dump(), legal_action_id=db_action.id)
-                db.add(db_parte)
-                
-        if getattr(action_in, "movimentos", None):
-            for m in action_in.movimentos:
-                db_mov = ProcessoMovimento(**m.model_dump(), legal_action_id=db_action.id)
-                db.add(db_mov)
-                
-        if getattr(action_in, "partes", None) or getattr(action_in, "movimentos", None):
-            db.commit()
 
         for assigned_user in assigned_users:
             if user_id is not None and assigned_user.id == user_id:
@@ -291,23 +346,21 @@ class LegalActionService:
 
         partes_data = update_data.pop("partes", None)
         movimentos_data = update_data.pop("movimentos", None)
+        update_data.pop("closing_date", None)
 
         for field, value in update_data.items():
             setattr(db_action, field, value)
 
         if partes_data is not None:
-            from app.models.processo_parte import ProcessoParte
-            db.query(ProcessoParte).filter(ProcessoParte.legal_action_id == db_action.id).delete()
+            db_action.partes.clear()
             for p in partes_data:
-                db_parte = ProcessoParte(**p, legal_action_id=db_action.id)
-                db.add(db_parte)
-                
+                db_action.partes.append(ProcessoParte(**p))
+
         if movimentos_data is not None:
-            from app.models.processo_movimento import ProcessoMovimento
-            db.query(ProcessoMovimento).filter(ProcessoMovimento.legal_action_id == db_action.id).delete()
+            db_action.movimentos.clear()
             for m in movimentos_data:
-                db_mov = ProcessoMovimento(**m, legal_action_id=db_action.id)
-                db.add(db_mov)
+                db_action.movimentos.append(ProcessoMovimento(**m))
+            db_action.closing_date = LegalActionService._infer_closing_date(movimentos_data)
 
         new_assigned_users = None
         new_user_ids_to_notify: set[int] = set()

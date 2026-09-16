@@ -4,6 +4,7 @@ from sqlalchemy import or_
 
 from app.models.client import Client
 from app.schemas.client import ClientCreate, ClientUpdate
+from app.core.listing import apply_listing_sort
 
 
 class ClientService:
@@ -42,11 +43,14 @@ class ClientService:
         db: Session,
         organization_id: int,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 10,
         search: Optional[str] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> tuple[List[Client], int]:
-        """Lista clientes da organização com paginação e busca
+        """Lista clientes da organização com paginação, busca e filtro de status
         
         Args:
             db: Sessão do banco
@@ -55,11 +59,15 @@ class ClientService:
             limit: Limite de registros
             search: Termo de busca
             user_id: Se fornecido, filtra apenas clientes criados por este usuário
+            status: Se fornecido, filtra pelo status do cliente
         """
         query = db.query(Client).filter(Client.organization_id == organization_id)
         
         if user_id is not None:
             query = query.filter(Client.user_id == user_id)
+        
+        if status:
+            query = query.filter(Client.status == status)
         
         if search:
             search_term = f"%{search}%"
@@ -72,6 +80,21 @@ class ClientService:
             )
         
         total = query.count()
+        query = apply_listing_sort(
+            query,
+            columns={
+                "name": Client.name,
+                "email": Client.email,
+                "phone": Client.phone,
+                "document": Client.document,
+                "status": Client.status,
+                "created_at": Client.created_at,
+            },
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="created_at",
+            tiebreaker=Client.id,
+        )
         clients = query.offset(skip).limit(limit).all()
         return clients, total
     

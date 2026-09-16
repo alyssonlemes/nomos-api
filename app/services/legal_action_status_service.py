@@ -5,6 +5,7 @@ from sqlalchemy import func
 
 from app.models.legal_action_status import LegalActionStatus
 from app.schemas.legal_action_status import LegalActionStatusCreate, LegalActionStatusUpdate
+from app.core.listing import apply_listing_sort
 
 
 class LegalActionStatusService:
@@ -30,6 +31,8 @@ class LegalActionStatusService:
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> Tuple[List[LegalActionStatus], int]:
         query = db.query(LegalActionStatus)
         if search:
@@ -38,7 +41,20 @@ class LegalActionStatusService:
                 (LegalActionStatus.name.ilike(term)) | (LegalActionStatus.code.ilike(term))
             )
         total = query.count()
-        items = query.order_by(LegalActionStatus.name).offset(skip).limit(limit).all()
+        query = apply_listing_sort(
+            query,
+            columns={
+                "name": LegalActionStatus.name,
+                "code": LegalActionStatus.code,
+                "description": LegalActionStatus.description,
+                "id": LegalActionStatus.id,
+            },
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="id",
+            tiebreaker=LegalActionStatus.id,
+        )
+        items = query.offset(skip).limit(limit).all()
         return items, total
 
     @staticmethod

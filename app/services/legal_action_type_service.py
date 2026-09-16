@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.legal_action_type import LegalActionType
 from app.schemas.legal_action_type import LegalActionTypeCreate, LegalActionTypeUpdate
+from app.core.listing import apply_listing_sort
 
 
 class LegalActionTypeService:
@@ -24,8 +25,10 @@ class LegalActionTypeService:
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
     ) -> Tuple[List[LegalActionType], int]:
-        """Lista tipos com paginação e busca opcional por nome/código."""
+        """Lista tipos com paginação, busca e ordenação no banco."""
         query = db.query(LegalActionType)
         if search:
             term = f"%{search}%"
@@ -33,7 +36,20 @@ class LegalActionTypeService:
                 LegalActionType.name.ilike(term) | LegalActionType.code.ilike(term)
             )
         total = query.count()
-        items = query.order_by(LegalActionType.name).offset(skip).limit(limit).all()
+        query = apply_listing_sort(
+            query,
+            columns={
+                "name": LegalActionType.name,
+                "code": LegalActionType.code,
+                "description": LegalActionType.description,
+                "id": LegalActionType.id,
+            },
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            default="id",
+            tiebreaker=LegalActionType.id,
+        )
+        items = query.offset(skip).limit(limit).all()
         return items, total
 
     @staticmethod

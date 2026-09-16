@@ -1,22 +1,49 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-# Criar engine do banco de dados
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    pool_size=10,
-    max_overflow=20,
-)
 
-# Criar sessão
+def _normalize_database_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://") :]
+    return url
+
+
+database_url = _normalize_database_url(settings.DATABASE_URL)
+is_sqlite = database_url.startswith("sqlite")
+uses_pgbouncer_pooler = "-pooler" in database_url
+
+connect_args = {}
+if not is_sqlite and "sslmode=" not in database_url:
+    connect_args["sslmode"] = "require"
+
+if is_sqlite:
+    engine = create_engine(
+        database_url,
+        connect_args={"check_same_thread": False},
+    )
+elif uses_pgbouncer_pooler:
+    # Neon pooled URL (PgBouncer) — NullPool evita pool duplo e conexões presas
+    engine = create_engine(
+        database_url,
+        poolclass=NullPool,
+        connect_args=connect_args,
+    )
+else:
+    engine = create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        pool_size=5,
+        max_overflow=10,
+        connect_args=connect_args,
+    )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base para os modelos
 Base = declarative_base()
 
 

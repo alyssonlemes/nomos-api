@@ -1,9 +1,9 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRoleUpdate
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRoleUpdate, UserListResponse
 from app.schemas.organization import OrganizationCreate
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
@@ -66,30 +66,39 @@ def get_me(
     return current_user
 
 
-@router.get("", response_model=List[UserResponse], summary="Listar usuários")
+@router.get("", response_model=UserListResponse, summary="Listar usuários")
 def list_users(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=500),
+    search: Optional[str] = Query(None, description="Buscar por nome ou e-mail"),
+    is_active: Optional[bool] = Query(None, description="Filtrar por status ativo/inativo"),
+    role: Optional[str] = Query(None, description="Filtrar por perfil"),
+    sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
+    sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Lista todos os usuários da mesma organização (requer autenticação)
-    
-    Requer que o usuário tenha uma organização criada.
-    
-    - **skip**: Número de registros a pular (paginação)
-    - **limit**: Número máximo de registros a retornar
+    Lista os usuários da mesma organização, de 10 em 10 por padrão.
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização para acessar outros usuários. Crie uma organização primeiro."
         )
-    
-    users = UserService.get_all(db, organization_id=current_user.organization_id, skip=skip, limit=limit)
-    return users
+
+    users, total = UserService.get_all(
+        db,
+        organization_id=current_user.organization_id,
+        skip=skip,
+        limit=limit,
+        search=search,
+        is_active=is_active,
+        role=role,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    return UserListResponse(total=total, users=users, skip=skip, limit=limit)
 
 
 @router.get("/{user_id}", response_model=UserResponse, summary="Buscar usuário por ID")

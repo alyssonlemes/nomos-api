@@ -366,7 +366,12 @@ def identificar_movimento_encerramento(
     for mov in movimentos:
         nome = (mov.get("nome") or mov.get("descricao") or "").strip()
         codigo = str(mov.get("codigo") or mov.get("codigoNacional") or "")
-        data_hora = mov.get("dataHora") or mov.get("data") or mov.get("dataMovimento")
+        data_hora = (
+            mov.get("dataHora")
+            or mov.get("data_hora")
+            or mov.get("data")
+            or mov.get("dataMovimento")
+        )
 
         # Verificar por nome (case-insensitive, substring match)
         nome_lower = nome.lower()

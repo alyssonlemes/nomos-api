@@ -69,6 +69,14 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserListResponse(BaseModel):
+    """Schema para lista paginada de usuários"""
+    total: int
+    users: list[UserResponse]
+    skip: int = 0
+    limit: int = 10
+
+
 class UserInDB(UserResponse):
     """Schema de User no banco (inclui senha hasheada)"""
     hashed_password: str
