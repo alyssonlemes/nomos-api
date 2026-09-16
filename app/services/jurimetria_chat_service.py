@@ -79,10 +79,12 @@ AREA_KEYWORDS: dict[str, list[str]] = {
 HELP_MESSAGE = (
     "Olá! Sou o assistente de jurimetria da Nomos, alimentado por um modelo "
     "de Machine Learning (scikit-learn).\n\n"
-    "Posso te ajudar com a **Previsão de tempo de tramitação**.\n\n"
-    "Para isso, informe o número do processo (padrão CNJ) e o tribunal. "
-    "Ex: \"Quanto tempo falta para o processo 0001234-56.2022.8.26.0100 no TJSP?\"\n\n"
-    "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *1001234-56.2023.8.26.0100 no TJSP*)."
+    "Posso te ajudar de duas formas:\n\n"
+    "💡 **Previsão de um processo** — informe o número CNJ e o tribunal. "
+    "Ex: *Quanto tempo falta para o processo 1079865-12.2024.8.26.0100 no TJSP?*\n\n"
+    "📊 **Tempo médio** — pergunte estatísticas da base local de processos já finalizados "
+    "(média, mediana e percentis de duração). "
+    "Ex: *Qual o tempo médio no Cível do TJSP?*"
 )
 
 
@@ -179,12 +181,14 @@ class JurimetriaChatService:
                     resposta_fallback = (
                         "Notei que você enviou um número de processo, mas ele não parece ter exatamente 20 dígitos no padrão CNJ. "
                         "Verifique se não faltou algum número (como o zero no final) e tente novamente.\n"
-                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1001234-56.2023.8.26.0100*"
+                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1079865-12.2024.8.26.0100*"
                     )
                 else:
                     resposta_fallback = (
                         "💡 **Para analisar outro processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                        "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
+                        "Ex: *1079865-12.2024.8.26.0100 no TJSP*\n\n"
+                        "📊 **Para tempo médio**, pergunte estatísticas da base local. "
+                        "Ex: *Qual o tempo médio no Cível do TJSP?*"
                     )
             else:
                 parece_cnj = re.search(r"\d{3,7}-\d{1,2}\.\d{4}\.\d{1,2}\.\d{1,2}\.\d{1,4}", mensagem)
@@ -193,13 +197,15 @@ class JurimetriaChatService:
                     resposta_fallback = (
                         "Notei que você enviou um número de processo, mas ele não parece ter exatamente 20 dígitos no padrão CNJ. "
                         "Verifique se não faltou algum número (como o zero no final) e tente novamente.\n"
-                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1001234-56.2023.8.26.0100*"
+                        "O formato correto é NNNNNNN-DD.AAAA.J.TT.OOOO. Ex: *1079865-12.2024.8.26.0100*"
                     )
                 else:
                     resposta_fallback = (
-                        "Não entendi muito bem. Posso te ajudar com a previsão de tempo de tramitação.\n\n"
+                        "Não entendi muito bem. Posso te ajudar com previsão de um processo ou com tempo médio.\n\n"
                         "💡 **Para analisar um processo**, é só mandar o número no padrão CNJ e o tribunal.\n"
-                        "Ex: *1001234-56.2023.8.26.0100 no TJSP*"
+                        "Ex: *1079865-12.2024.8.26.0100 no TJSP*\n\n"
+                        "📊 **Para tempo médio**, pergunte estatísticas da base local. "
+                        "Ex: *Qual o tempo médio no Cível do TJSP?*"
                     )
 
             return JurimetriaChatResponse(
@@ -379,7 +385,8 @@ class JurimetriaChatService:
                 )
 
         partes.append("\n_Previsão baseada em dados históricos do DataJud e modelo treinado com scikit-learn._")
-        partes.append("\n💡 **Para tentar outro processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *1001234-56.2023.8.26.0100 no TJSP*).")
+        partes.append("\n💡 **Para tentar outro processo**, é só mandar o número no padrão CNJ e o tribunal (ex: *1079865-12.2024.8.26.0100 no TJSP*).")
+        partes.append("📊 **Para tempo médio**, pergunte estatísticas da base local. Ex: *Qual o tempo médio no Cível do TJSP?*")
 
         return JurimetriaChatResponse(
             resposta="\n".join(partes),

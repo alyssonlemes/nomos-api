@@ -1,0 +1,33 @@
+{
+  "computed_at": "2026-09-06T15:44:04",
+  "method": "mesmo pipeline de train.py: ordenacao por data_ajuizamento, split temporal 80/20; baseline = mediana de y_train aplicada em y_test",
+  "total_records_valid": 2862,
+  "n_train": 2289,
+  "n_test": 573,
+  "split_index": 2289,
+  "y_train_median_dias": 129.0,
+  "y_train_mean_dias": 166.84185233726518,
+  "y_train_min": 19.0,
+  "y_train_max": 579.0,
+  "y_test_median_dias": 126.0,
+  "y_test_mean_dias": 162.04886561954623,
+  "baseline_median": {
+    "mae": 67.75741710296684,
+    "rmse": 99.26604125227709
+  },
+  "baseline_mean": {
+    "mae": 73.27356421217799,
+    "rmse": 93.72562162416519
+  },
+  "active_rf_reeval": {
+    "mae": 69.18481312718991,
+    "rmse": 87.92133985262691,
+    "version": "20260825005116",
+    "stored_mae": 69.18481312718991,
+    "stored_rmse": 87.92133985262691,
+    "stored_total_records": 2862
+  },
+  "postgres_server_version": "17.11 (32e7196)",
+  "jurimetria_dataset_total_rows": 3000,
+  "jurimetria_dataset_valid_duracao": 2862
+}
