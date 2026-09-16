@@ -303,6 +303,17 @@ class JurimetriaChatService:
                     numero_processo=numero_processo,
                     tribunal=tribunal,
                 )
+            if "Timeout" in mensagem_erro or "timed out" in mensagem_erro.lower():
+                return JurimetriaChatResponse(
+                    resposta=(
+                        "O DataJud está demorando para responder neste momento, "
+                        "principalmente em consultas do TJSP.\n\n"
+                        "Tente novamente em alguns instantes."
+                    ),
+                    tipo="texto",
+                    numero_processo=numero_processo,
+                    tribunal=tribunal,
+                )
             return JurimetriaChatResponse(
                 resposta=(
                     f"Ocorreu um erro ao consultar o DataJud: {mensagem_erro}\n\n"

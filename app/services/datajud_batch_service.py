@@ -18,7 +18,8 @@ class DataJudBatchService:
     """
 
     RATE_LIMIT_SECONDS = 0.5
-    REQUEST_TIMEOUT_SECONDS = 30
+    REQUEST_TIMEOUT_SECONDS = 60
+    MAX_RETRIES = 3
     MAX_RESULT_WINDOW = 10_000
 
     @staticmethod
@@ -118,21 +119,39 @@ class DataJudBatchService:
         data = json.dumps(payload).encode("utf-8")
         headers = {
             "Authorization": f"ApiKey {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
-        request = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
-        try:
-            with urllib.request.urlopen(request, timeout=DataJudBatchService.REQUEST_TIMEOUT_SECONDS) as response:
-                body = response.read().decode("utf-8")
-                return json.loads(body)
-        except urllib.error.HTTPError as exc:
-            error_body = exc.read().decode("utf-8") if exc.fp else ""
-            raise RuntimeError(f"Erro DataJud: HTTP {exc.code} - {error_body}") from exc
-        except urllib.error.URLError as exc:
-            raise RuntimeError(f"Erro de conexão com DataJud: {exc.reason}") from exc
-        except json.JSONDecodeError as exc:
-            raise RuntimeError("Resposta inválida do DataJud") from exc
+        last_error: Optional[Exception] = None
+        for attempt in range(1, DataJudBatchService.MAX_RETRIES + 1):
+            request = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(
+                    request,
+                    timeout=DataJudBatchService.REQUEST_TIMEOUT_SECONDS,
+                ) as response:
+                    body = response.read().decode("utf-8")
+                    return json.loads(body)
+            except urllib.error.HTTPError as exc:
+                error_body = exc.read().decode("utf-8") if exc.fp else ""
+                retryable = exc.code in {429, 502, 503, 504}
+                if retryable and attempt < DataJudBatchService.MAX_RETRIES:
+                    time.sleep(attempt * 1.5)
+                    last_error = exc
+                    continue
+                raise RuntimeError(f"Erro DataJud: HTTP {exc.code} - {error_body}") from exc
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last_error = exc
+                if attempt < DataJudBatchService.MAX_RETRIES:
+                    time.sleep(attempt * 1.5)
+                    continue
+                reason = getattr(exc, "reason", exc)
+                raise RuntimeError(f"Timeout ao consultar DataJud: {reason}") from exc
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("Resposta inválida do DataJud") from exc
+
+        raise RuntimeError(f"Timeout ao consultar DataJud: {last_error}")
 
     @staticmethod
     def _extract_total(response_data: Dict[str, Any]) -> int:
