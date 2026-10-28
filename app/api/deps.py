@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.core.config import settings
+from app.core.perfis import eh_administrador, eh_gestor, isola_dados_usuario, tem_permissao_usuario
 from app.services.user_service import UserService
 from app.models.user import User
 
@@ -68,25 +69,20 @@ def get_current_user(
 
 
 def get_current_active_user(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> User:
     """
-    Dependency para garantir que o usuário está ativo
-    
-    Args:
-        current_user: Usuário atual
-    
-    Returns:
-        Usuário ativo
-    
-    Raises:
-        HTTPException: Se o usuário estiver inativo
+    Dependency para garantir que o usuário está ativo e vinculado ao perfil da organização.
     """
     if not UserService.is_active(current_user):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Usuário inativo"
         )
+    if current_user.organization_id and not current_user.profile_id:
+        from app.services.access_profile_service import AccessProfileService
+        current_user = AccessProfileService.garantir_vinculo(db, current_user)
     return current_user
 
 
@@ -136,70 +132,63 @@ def get_user_organization(
     return current_user.organization_id
 
 
+def exigir_permissao(modulo: str, acao: str = "visualizar"):
+    """Exige a ação de CRUD no módulo do perfil do usuário."""
+
+    def _dependencia(
+        current_user: User = Depends(get_current_active_user),
+    ) -> User:
+        if current_user.is_superuser:
+            return current_user
+        if not tem_permissao_usuario(current_user, modulo, acao):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Você não tem permissão para acessar este recurso.",
+            )
+        return current_user
+
+    return _dependencia
+
+
 def get_admin_or_owner(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ) -> User:
     """
-    Dependency para garantir que o usuário é admin ou owner da organização
-    
-    Args:
-        current_user: Usuário ativo
-        db: Sessão do banco de dados
-    
-    Returns:
-        Usuário com permissões de admin/owner
-    
-    Raises:
-        HTTPException: Se o usuário não tiver permissões
+    Garante gestão de usuários: administrador, gestor ou quem pode criar/editar usuários.
     """
+    if current_user.is_superuser:
+        return current_user
+
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização."
         )
-    
-    # Verificar se é admin ou owner (case-insensitive)
-    if (current_user.role or "").lower() in ["admin", "owner"]:
+
+    if (
+        eh_administrador(current_user)
+        or eh_gestor(current_user)
+        or tem_permissao_usuario(current_user, "usuarios", "criar")
+        or tem_permissao_usuario(current_user, "usuarios", "editar")
+    ):
         return current_user
-    
-    # Verificar se é o owner da organização
+
     from app.services.organization_service import OrganizationService
     organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
-    
     if organization and organization.owner_id == current_user.id:
         return current_user
-    
+
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Apenas administradores ou proprietários podem realizar esta ação."
+        detail="Você não tem permissão para gerenciar usuários."
     )
 
 
 def require_legal_actions_access(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(exigir_permissao("processos", "visualizar"))
 ) -> User:
-    """
-    Dependency para garantir que o usuário tem acesso a processos e jurimetria
-    Bloqueia usuários com role 'assistant'
-    
-    Args:
-        current_user: Usuário ativo
-    
-    Returns:
-        Usuário com permissões para acessar processos e jurimetria
-    
-    Raises:
-        HTTPException: Se o usuário for assistant
-    """
-    user_role = (current_user.role or "").lower()
-    
-    if user_role == "assistant":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Assistentes não têm permissão para acessar processos e jurimetria."
-        )
-    
+    """Compatibilidade: visualizar processos."""
     return current_user
 
 
@@ -207,48 +196,31 @@ def require_write_access(
     current_user: User = Depends(get_current_active_user)
 ) -> User:
     """
-    Dependency para garantir que o usuário pode criar, editar e deletar (ações de escrita)
-    Bloqueia usuários com role 'viewer' - apenas leitura
-    
-    Args:
-        current_user: Usuário ativo
-    
-    Returns:
-        Usuário com permissões de escrita
-    
-    Raises:
-        HTTPException: Se o usuário for viewer
+    Compatibilidade para escrita genérica.
+    Bloqueia quem só visualiza clientes, processos e atividades.
     """
-    user_role = (current_user.role or "").lower()
-    
-    if user_role == "viewer":
+    if current_user.is_superuser or eh_administrador(current_user):
+        return current_user
+    pode_escrever = any(
+        tem_permissao_usuario(current_user, modulo, acao)
+        for modulo in ("clientes", "processos", "atividades", "usuarios", "configuracoes")
+        for acao in ("criar", "editar", "excluir")
+    )
+    if not pode_escrever:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Visualizadores apenas leem dados, não podem criar, editar ou deletar."
+            detail="Você não tem permissão para alterar dados.",
         )
-    
     return current_user
+
 
 def get_data_filter_user_id(
     current_user: User = Depends(get_current_active_user)
 ) -> int | None:
     """
-    Dependency que retorna user_id para filtrar dados baseado na role
-    
-    - ADMIN/OWNER: Retorna None (veem todos os dados)
-    - MEMBER/VIEWER/ASSISTANT: Retorna user_id (veem apenas seus dados)
-    
-    Args:
-        current_user: Usuário ativo
-    
-    Returns:
-        user_id para filtrar, ou None se tiver acesso total
+    Retorna o id do usuário quando o perfil isola os dados.
+    Administrador e perfis sem isolamento recebem None e enxergam a organização.
     """
-    user_role = (current_user.role or "").lower()
-    
-    # Admin e owner veem tudo
-    if user_role in ["admin", "owner"]:
-        return None
-    
-    # Member, viewer e assistant veem apenas seus dados
-    return current_user.id
+    if isola_dados_usuario(current_user):
+        return current_user.id
+    return None

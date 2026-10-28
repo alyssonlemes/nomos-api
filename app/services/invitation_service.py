@@ -7,7 +7,7 @@ class InvitationService:
     """Service para operações com convites"""
     
     @staticmethod
-    def create(db: Session, email: str, organization_id: int, invited_by_id: int, role: str = None) -> Invitation:
+    def create(db: Session, email: str, organization_id: int, invited_by_id: int, role: str = None, profile_id: int = None) -> Invitation:
         """Cria um novo convite"""
         # Se já existe um convite aceito para esse email e organização, não criar outro
         existing_accepted = db.query(Invitation).filter(
@@ -34,7 +34,8 @@ class InvitationService:
             organization_id=organization_id,
             invited_by_id=invited_by_id,
             status=InvitationStatus.PENDING,
-            role=role
+            role=role,
+            profile_id=profile_id,
         )
         db.add(invitation)
         db.commit()

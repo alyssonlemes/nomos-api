@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.models.user import User
+from app.models.access_profile import AccessProfile
 from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.user import UserCreate, UserUpdate, UserRoleUpdate
+from app.core.perfis import NOME_POR_PAPEL
 from app.core.security import get_password_hash, verify_password
 from app.core.listing import apply_listing_sort
 
@@ -36,6 +38,8 @@ class UserService:
         search: Optional[str] = None,
         is_active: Optional[bool] = None,
         role: Optional[str] = None,
+        profile_id: Optional[int] = None,
+        only_user_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         sort_dir: Optional[str] = None,
     ) -> tuple[List[User], int]:
@@ -51,8 +55,20 @@ class UserService:
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
 
-        if role and role.strip():
-            query = query.filter(func.upper(User.role) == role.strip().upper())
+        if profile_id is not None:
+            query = query.filter(User.profile_id == profile_id)
+        elif role and role.strip():
+            nome = NOME_POR_PAPEL.get(role.strip().lower())
+            if nome:
+                perfil_ids = db.query(AccessProfile.id).filter(AccessProfile.name == nome)
+                if organization_id:
+                    perfil_ids = perfil_ids.filter(AccessProfile.organization_id == organization_id)
+                query = query.filter(User.profile_id.in_(perfil_ids))
+            else:
+                query = query.filter(func.upper(User.role) == role.strip().upper())
+
+        if only_user_id is not None:
+            query = query.filter(User.id == only_user_id)
 
         total = query.count()
         query = apply_listing_sort(
@@ -194,6 +210,8 @@ class UserService:
                 raise
 
         db_user.organization_id = None
+        db_user.profile_id = None
+        db_user.role = None
         db.add(db_user)
         db.commit()
         db.refresh(db_user)

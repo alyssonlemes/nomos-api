@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_legal_actions_access, get_user_organization
+from app.api.deps import exigir_permissao, get_user_organization
 from app.database import get_db
 from app.models.user import User
 from app.schemas.datajud_autocomplete import ProcessoAutoCompleteResponse
@@ -31,7 +31,7 @@ def autocomplete_processo(
         description="Número CNJ do processo (ex: 0000001-00.2024.8.26.0001)",
     ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
 ):
     """
     Consulta um processo judicial no DataJud pelo número CNJ e retorna os dados
@@ -101,7 +101,7 @@ def autocomplete_processo(
 def executar_batch_processos(
     filtros: BatchFiltroRequest,
     db: Session = Depends(get_db),
-    _current_user = Depends(require_legal_actions_access),
+    _current_user = Depends(exigir_permissao("processos", "editar")),
     organization_id: int = Depends(get_user_organization),
 ):
     """

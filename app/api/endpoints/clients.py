@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse, ClientStatus
 from app.services.client_service import ClientService
-from app.api.deps import get_current_active_user, get_user_organization, require_write_access, get_data_filter_user_id
+from app.api.deps import get_user_organization, exigir_permissao, get_data_filter_user_id
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ router = APIRouter()
 def create_client(
     client_in: ClientCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_write_access),
+    current_user = Depends(exigir_permissao("clientes", "criar")),
     organization_id: int = Depends(get_user_organization)
 ):
     """
@@ -49,7 +49,8 @@ def list_clients(
     sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+    _current_user=Depends(exigir_permissao("clientes", "visualizar")),
 ):
     """
     Lista os clientes da organização, de 10 em 10 por padrão.
@@ -81,7 +82,8 @@ def get_client(
     client_id: int,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+    _current_user=Depends(exigir_permissao("clientes", "visualizar")),
 ):
     """
     Busca um cliente específico por ID
@@ -109,7 +111,7 @@ def update_client(
     client_id: int,
     client_in: ClientUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_write_access),
+    current_user = Depends(exigir_permissao("clientes", "editar")),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
@@ -153,7 +155,7 @@ def update_client(
 def delete_client(
     client_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_write_access),
+    current_user = Depends(exigir_permissao("clientes", "excluir")),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):

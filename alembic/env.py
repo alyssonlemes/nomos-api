@@ -23,6 +23,7 @@ from app.core.config import settings
 
 # Import all models to ensure they are registered
 from app.models.user import User
+from app.models.access_profile import AccessProfile
 from app.models.organization import Organization
 from app.models.invitation import Invitation
 from app.models.client import Client

@@ -10,7 +10,7 @@ Implementa os endpoints RESTful para:
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_legal_actions_access
+from app.api.deps import exigir_permissao
 from app.database import get_db
 from app.schemas.process_analysis import (
     AnaliseEstatisticasFiltro,
@@ -34,7 +34,7 @@ router = APIRouter()
 def coletar_e_analisar_processos(
     filtros: AnaliseProcessosFiltro,
     db: Session = Depends(get_db),
-    _current_user=Depends(require_legal_actions_access),
+    _current_user=Depends(exigir_permissao("jurimetria", "visualizar")),
 ):
     """
     Coleta processos da API pública do DataJud e realiza análise completa.
@@ -88,7 +88,7 @@ def coletar_e_analisar_processos(
 def obter_estatisticas_processos(
     filtros: AnaliseEstatisticasFiltro,
     db: Session = Depends(get_db),
-    _current_user=Depends(require_legal_actions_access),
+    _current_user=Depends(exigir_permissao("jurimetria", "visualizar")),
 ):
     """
     Retorna estatísticas agregadas dos processos já coletados e analisados.
@@ -127,7 +127,7 @@ def obter_estatisticas_processos(
     summary="Listar áreas jurídicas disponíveis",
 )
 def listar_areas_juridicas(
-    _current_user=Depends(require_legal_actions_access),
+    _current_user=Depends(exigir_permissao("jurimetria", "visualizar")),
 ):
     """
     Retorna todas as áreas jurídicas disponíveis no mapeamento TPU.

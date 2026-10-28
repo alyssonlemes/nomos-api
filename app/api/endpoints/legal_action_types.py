@@ -12,7 +12,7 @@ from app.schemas.legal_action_type import (
 )
 from app.services.legal_action_type_service import LegalActionTypeService
 from app.models.user import User
-from app.api.deps import require_legal_actions_access
+from app.api.deps import exigir_permissao
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 def create_legal_action_type(
     data_in: LegalActionTypeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "criar")),
 ):
     """Cria um novo tipo de ação jurídica (catálogo)."""
     existing = LegalActionTypeService.get_by_code(db, data_in.code.strip().lower())
@@ -51,7 +51,7 @@ def list_legal_action_types(
     sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
     sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
 ):
     """Lista todos os tipos de ação jurídica com paginação."""
     items, total = LegalActionTypeService.get_all(
@@ -68,7 +68,7 @@ def list_legal_action_types(
 def get_legal_action_type(
     type_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
 ):
     """Retorna um tipo de ação jurídica pelo ID."""
     obj = LegalActionTypeService.get_by_id(db, type_id)
@@ -89,7 +89,7 @@ def update_legal_action_type(
     type_id: int,
     data_in: LegalActionTypeUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
 ):
     """Atualiza um tipo de ação jurídica."""
     if data_in.code is not None:
@@ -116,7 +116,7 @@ def update_legal_action_type(
 def delete_legal_action_type(
     type_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "excluir")),
 ):
     """Remove um tipo. Falha se houver ações jurídicas usando este tipo."""
     obj = LegalActionTypeService.get_by_id(db, type_id)

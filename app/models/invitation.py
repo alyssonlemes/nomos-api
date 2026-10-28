@@ -37,8 +37,9 @@ class Invitation(Base):
     
     # Status do convite
     status = Column(SQLEnum(InvitationStatus), default=InvitationStatus.PENDING, index=True)
-    # Papel proposto para o usuário na organização (admin|member|viewer)
+    # Papel legado (admin|gestor|member|viewer|assistant) e perfil da organização
     role = Column(String, nullable=True, index=True)
+    profile_id = Column(Integer, ForeignKey("access_profiles.id", ondelete="SET NULL"), nullable=True, index=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -1,7 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from sqlalchemy.exc import DataError
 
 from app.database import get_db
@@ -11,7 +10,9 @@ from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
 from app.models.user import User
 from app.models.invitation import InvitationStatus, Invitation
-from app.api.deps import get_current_active_user, get_admin_or_owner
+from app.api.deps import get_current_active_user, exigir_permissao
+from app.core.perfis import eh_administrador, papel_convite, papel_legado
+from app.services.access_profile_service import AccessProfileService
 
 router = APIRouter()
 
@@ -25,14 +26,10 @@ router = APIRouter()
 def invite_user(
     invite_in: InvitationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_or_owner)
+    current_user: User = Depends(exigir_permissao("usuarios", "criar"))
 ):
     """
-    Convida um usuário para fazer parte da organização (por email)
-    
-    Apenas administradores ou proprietários podem convidar.
-    
-    - **email**: Email do usuário a convidar
+    Convida um usuário para a organização com um perfil de acesso.
     """
     # Verificar se usuário tem organização
     if not current_user.organization_id:
@@ -71,12 +68,29 @@ def invite_user(
         )
     
     # Criar convite
+    perfil = None
+    if invite_in.profile_id is not None:
+        perfil = AccessProfileService.buscar(db, invite_in.profile_id, current_user.organization_id)
+    elif invite_in.role is not None:
+        perfil = AccessProfileService.resolver_por_papel(db, current_user.organization_id, invite_in.role.value)
+    else:
+        perfil = AccessProfileService.resolver_por_papel(db, current_user.organization_id, "member")
+
+    if perfil is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Perfil inválido para esta organização.")
+    if perfil.name == "Administrador" and not eh_administrador(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas o administrador pode convidar outro administrador.",
+        )
+
     invitation = InvitationService.create(
         db=db,
         email=invite_in.email,
         organization_id=current_user.organization_id,
         invited_by_id=current_user.id,
-        role=invite_in.role.value if hasattr(invite_in, 'role') and invite_in.role is not None else None
+        role=papel_convite(perfil.name),
+        profile_id=perfil.id,
     )
     
     return invitation
@@ -92,7 +106,7 @@ def list_organization_invitations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_or_owner)
+    current_user: User = Depends(exigir_permissao("usuarios", "visualizar"))
 ):
     """
     Lista todos os convites da organização
@@ -131,6 +145,7 @@ def list_organization_invitations(
             "email": inv.email,
             "organization_id": inv.organization_id,
             "role": inv.role,
+            "profile_id": inv.profile_id,
             "organization_name": organization.name,
             "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
@@ -169,6 +184,7 @@ def list_my_invitations(
             "email": inv.email,
             "organization_id": inv.organization_id,
             "role": inv.role,
+            "profile_id": inv.profile_id,
             "organization_name": org.name if org else None,
             "invited_by_email": inv.invited_by.email if inv.invited_by else None,
             "status": inv.status,
@@ -226,46 +242,31 @@ def accept_invitation(
     
     # Aceitar convite
     invitation = InvitationService.accept(db=db, invitation_id=invitation_id)
-    
-    # Vincular usuário à organização
-    # Garantir que estamos usando a mesma sessão DB: anexar/mesclar o objeto `current_user`
+
+    perfil = None
+    if invitation.profile_id:
+        perfil = AccessProfileService.buscar(db, invitation.profile_id, invitation.organization_id)
+    if perfil is None:
+        perfil = AccessProfileService.resolver_por_papel(db, invitation.organization_id, invitation.role or "member")
+
     current_user = db.merge(current_user)
     current_user.organization_id = invitation.organization_id
+    current_user.profile_id = perfil.id if perfil else None
+    current_user.role = papel_legado(perfil.name if perfil else None, eh_dono=False)
 
-    # Atribuir role enviada no convite (não atribuir owner aqui)
-    if invitation.role:
-        current_user.role = invitation.role
-
-    # Tentar commitar; se houver incompatibilidade com um ENUM no Postgres,
-    # tentar mapear a label correta (case-insensitive) a partir de pg_enum.
     try:
         db.commit()
         db.refresh(current_user)
     except DataError:
         db.rollback()
-        try:
-            # Obter labels do enum userrole no Postgres
-            res = db.execute(text("SELECT e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname = 'userrole'"))
-            labels = [r[0] for r in res.fetchall()]
-            match = next((lbl for lbl in labels if lbl.lower() == (invitation.role or "").lower()), None)
-            if match:
-                # Reaplicar organization_id após rollback antes de commitar novamente
-                current_user.organization_id = invitation.organization_id
-                current_user.role = match
-                db.add(current_user)
-                db.commit()
-                db.refresh(current_user)
-            else:
-                # Se não achar correspondência, limpar role e reaplicar organization_id
-                current_user.organization_id = invitation.organization_id
-                current_user.role = None
-                db.add(current_user)
-                db.commit()
-                db.refresh(current_user)
-        except Exception:
-            db.rollback()
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atribuir role compatível com o banco")
-    
+        current_user = db.merge(current_user)
+        current_user.organization_id = invitation.organization_id
+        current_user.profile_id = perfil.id if perfil else None
+        current_user.role = None
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+
     return invitation
 
 

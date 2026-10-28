@@ -17,7 +17,8 @@ from app.models.organization import Organization
 from app.models.legal_action import LegalAction
 from app.models.legal_action_type import LegalActionType
 from app.models.legal_action_status import LegalActionStatus
-from app.api.deps import get_current_active_user, get_user_organization, require_legal_actions_access, get_data_filter_user_id
+from app.api.deps import get_user_organization, exigir_permissao, get_data_filter_user_id
+from app.core.perfis import tem_permissao_usuario
 
 router = APIRouter()
 
@@ -29,7 +30,7 @@ router = APIRouter()
 )
 def get_dashboard_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("dashboard", "visualizar")),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: int | None = Depends(get_data_filter_user_id)
 ):
@@ -47,21 +48,27 @@ def get_dashboard_stats(
     """
     # Data de 30 dias atrás
     thirty_days_ago = datetime.now() - timedelta(days=30)
-    
+    client_filter = filter_user_id
+    action_filter = filter_user_id
+    if not tem_permissao_usuario(current_user, "clientes", "visualizar"):
+        client_filter = -1
+    if not tem_permissao_usuario(current_user, "processos", "visualizar"):
+        action_filter = -1
+
     # Total de clientes
     total_clients = db.query(func.count(Client.id)).filter(
         Client.organization_id == organization_id
     )
-    if filter_user_id:
-        total_clients = total_clients.filter(Client.user_id == filter_user_id)
+    if client_filter:
+        total_clients = total_clients.filter(Client.user_id == client_filter)
     total_clients = total_clients.scalar()
     
     # Total de ações jurídicas
     total_legal_actions = db.query(func.count(LegalAction.id)).filter(
         LegalAction.organization_id == organization_id
     )
-    if filter_user_id:
-        total_legal_actions = total_legal_actions.filter(LegalAction.user_id == filter_user_id)
+    if action_filter:
+        total_legal_actions = total_legal_actions.filter(LegalAction.user_id == action_filter)
     total_legal_actions = total_legal_actions.scalar()
     
     # Total de usuários da organização (sempre mostra o mesmo - não filtra por user)
@@ -75,8 +82,8 @@ def get_dashboard_stats(
         .join(LegalAction, LegalAction.legal_status_id == LegalActionStatus.id)
         .filter(LegalAction.organization_id == organization_id)
     )
-    if filter_user_id:
-        actions_by_status_query = actions_by_status_query.filter(LegalAction.user_id == filter_user_id)
+    if action_filter:
+        actions_by_status_query = actions_by_status_query.filter(LegalAction.user_id == action_filter)
     actions_by_status_query = actions_by_status_query.group_by(LegalActionStatus.id, LegalActionStatus.name).all()
     actions_by_status = {name: count for name, count in actions_by_status_query}
     
@@ -86,8 +93,8 @@ def get_dashboard_stats(
         .join(LegalAction, LegalAction.action_type_id == LegalActionType.id)
         .filter(LegalAction.organization_id == organization_id)
     )
-    if filter_user_id:
-        actions_by_type_query = actions_by_type_query.filter(LegalAction.user_id == filter_user_id)
+    if action_filter:
+        actions_by_type_query = actions_by_type_query.filter(LegalAction.user_id == action_filter)
     actions_by_type_query = actions_by_type_query.group_by(LegalActionType.id, LegalActionType.name).all()
     actions_by_type = {name: count for name, count in actions_by_type_query}
     
@@ -98,8 +105,8 @@ def get_dashboard_stats(
     ).filter(
         Client.organization_id == organization_id
     )
-    if filter_user_id:
-        clients_by_status_query = clients_by_status_query.filter(Client.user_id == filter_user_id)
+    if client_filter:
+        clients_by_status_query = clients_by_status_query.filter(Client.user_id == client_filter)
     clients_by_status_query = clients_by_status_query.group_by(Client.status).all()
     clients_by_status = {status: count for status, count in clients_by_status_query}
     
@@ -108,8 +115,8 @@ def get_dashboard_stats(
         Client.organization_id == organization_id,
         Client.created_at >= thirty_days_ago
     )
-    if filter_user_id:
-        recent_clients = recent_clients.filter(Client.user_id == filter_user_id)
+    if client_filter:
+        recent_clients = recent_clients.filter(Client.user_id == client_filter)
     recent_clients = recent_clients.scalar()
     
     # Ações criadas nos últimos 30 dias
@@ -117,8 +124,8 @@ def get_dashboard_stats(
         LegalAction.organization_id == organization_id,
         LegalAction.created_at >= thirty_days_ago
     )
-    if filter_user_id:
-        recent_actions = recent_actions.filter(LegalAction.user_id == filter_user_id)
+    if action_filter:
+        recent_actions = recent_actions.filter(LegalAction.user_id == action_filter)
     recent_actions = recent_actions.scalar()
     
     return DashboardStats(
@@ -147,7 +154,7 @@ CLIENT_STATUS_LABELS = {
 )
 def export_dashboard_excel(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("dashboard", "visualizar")),
     organization_id: int = Depends(get_user_organization),
     filter_user_id: int | None = Depends(get_data_filter_user_id)
 ):

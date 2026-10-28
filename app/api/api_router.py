@@ -16,6 +16,7 @@ from app.api.endpoints import (
     process_analysis_router,
     activities_router,
     notifications_router,
+    access_profiles_router,
 )
 
 api_router = APIRouter()
@@ -122,4 +123,10 @@ api_router.include_router(
     notifications_router,
     prefix="/notifications",
     tags=["Notificacoes"],
+)
+
+api_router.include_router(
+    access_profiles_router,
+    prefix="/access-profiles",
+    tags=["Perfis de acesso"],
 )

@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import require_legal_actions_access
+from app.api.deps import exigir_permissao
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ router = APIRouter()
     summary="Treinar modelo de jurimetria"
 )
 def train_model(
-    _current_user = Depends(require_legal_actions_access)
+    _current_user = Depends(exigir_permissao("jurimetria", "editar"))
 ):
     """
     Executa o pipeline completo de treino e registra o modelo ativo.

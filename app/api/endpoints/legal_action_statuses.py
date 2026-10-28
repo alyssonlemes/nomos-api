@@ -13,7 +13,7 @@ from app.schemas.legal_action_status import (
 )
 from app.services.legal_action_status_service import LegalActionStatusService
 from app.models.user import User
-from app.api.deps import require_legal_actions_access
+from app.api.deps import exigir_permissao
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ router = APIRouter()
 def create_legal_action_status(
     data_in: LegalActionStatusCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "criar")),
 ):
     existing = LegalActionStatusService.get_by_code(db, data_in.code.strip().lower())
     if existing:
@@ -68,7 +68,7 @@ def list_legal_action_statuses(
     sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
     sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
 ):
     items, total = LegalActionStatusService.get_all(
         db, skip=skip, limit=limit, search=search, sort_by=sort_by, sort_dir=sort_dir
@@ -84,7 +84,7 @@ def list_legal_action_statuses(
 def get_legal_action_status(
     status_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
 ):
     obj = LegalActionStatusService.get_by_id(db, status_id)
     if not obj:
@@ -104,7 +104,7 @@ def update_legal_action_status(
     status_id: int,
     data_in: LegalActionStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
 ):
     obj = LegalActionStatusService.update(db, status_id, data_in)
     if not obj:
@@ -123,7 +123,7 @@ def update_legal_action_status(
 def delete_legal_action_status(
     status_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "excluir")),
 ):
     obj = LegalActionStatusService.get_by_id(db, status_id)
     if not obj:

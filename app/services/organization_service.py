@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
 from app.models.user import User
+from app.models.access_profile import AccessProfile
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
+from app.core.perfis import NOME_ADMINISTRADOR, PERFIS_PADRAO, papel_legado
 
 
 class OrganizationService:
@@ -47,14 +49,33 @@ class OrganizationService:
             is_active=True
         )
         db.add(db_org)
-        db.flush()  # Para pegar o ID gerado
-        
-        # Vincular o usuário à organização
+        db.flush()
+
+        for item in PERFIS_PADRAO:
+            db.add(
+                AccessProfile(
+                    organization_id=db_org.id,
+                    name=item["nome"],
+                    description=item["descricao"],
+                    is_system=True,
+                    isolate_data=item["isolate_data"],
+                    permissions=item["permissoes"],
+                )
+            )
+        db.flush()
+
+        admin = (
+            db.query(AccessProfile)
+            .filter(AccessProfile.organization_id == db_org.id, AccessProfile.name == NOME_ADMINISTRADOR)
+            .first()
+        )
         user = db.query(User).filter(User.id == owner_id).first()
         if user:
             user.organization_id = db_org.id
+            user.profile_id = admin.id if admin else None
+            user.role = papel_legado(NOME_ADMINISTRADOR, eh_dono=True)
             db.add(user)
-        
+
         db.commit()
         db.refresh(db_org)
         return db_org

@@ -1,4 +1,5 @@
 from app.models.user import User
+from app.models.access_profile import AccessProfile
 from app.models.organization import Organization
 from app.models.invitation import Invitation
 from app.models.client import Client
@@ -13,6 +14,7 @@ from app.models.processo_movimento import ProcessoMovimento
 
 __all__ = [
     "User",
+    "AccessProfile",
     "Organization",
     "Invitation",
     "Client",

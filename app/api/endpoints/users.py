@@ -7,8 +7,10 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRoleUpdat
 from app.schemas.organization import OrganizationCreate
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
+from app.services.access_profile_service import AcessoNegado, AccessProfileService, PerfilInvalido
 from app.models.user import User
-from app.api.deps import get_current_active_user, require_write_access, get_admin_or_owner
+from app.api.deps import get_current_active_user, exigir_permissao
+from app.core.perfis import eh_administrador, isola_dados_usuario, tem_permissao_usuario
 
 router = APIRouter()
 
@@ -72,11 +74,12 @@ def list_users(
     limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = Query(None, description="Buscar por nome ou e-mail"),
     is_active: Optional[bool] = Query(None, description="Filtrar por status ativo/inativo"),
-    role: Optional[str] = Query(None, description="Filtrar por perfil"),
+    role: Optional[str] = Query(None, description="Filtrar pelo papel legado"),
+    profile_id: Optional[int] = Query(None, description="Filtrar por perfil"),
     sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
     sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(exigir_permissao("usuarios", "visualizar"))
 ):
     """
     Lista os usuários da mesma organização, de 10 em 10 por padrão.
@@ -95,6 +98,8 @@ def list_users(
         search=search,
         is_active=is_active,
         role=role,
+        profile_id=profile_id,
+        only_user_id=current_user.id if isola_dados_usuario(current_user) else None,
         sort_by=sort_by,
         sort_dir=sort_dir,
     )
@@ -122,13 +127,22 @@ def get_user(
         )
     
     user = UserService.get_by_id(db, user_id=user_id, organization_id=current_user.organization_id)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
         )
-    
+
+    if current_user.id != user_id and not tem_permissao_usuario(current_user, "usuarios", "visualizar"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar este recurso.",
+        )
+
+    if isola_dados_usuario(current_user) and current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+
     return user
 
 
@@ -137,17 +151,13 @@ def update_user(
     user_id: int,
     user_in: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_write_access)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Atualiza os dados de um usuário (requer autenticação)
     
     Usuários só podem atualizar seus próprios dados,
-    exceto admins/owners que podem atualizar usuários da mesma organização.
-    Nota: Atualização de email e senha não requer organização.
-    
-    - **user_id**: ID do usuário
-    - Campos atualizáveis: email, full_name, password, is_active
+    exceto quem tem permissão de editar usuários na organização.
     """
     is_self = current_user.id == user_id
     is_superuser = UserService.is_superuser(current_user)
@@ -158,20 +168,24 @@ def update_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Você precisa ter uma organização."
             )
-
-        is_admin_owner = (current_user.role or "").lower() in ["admin", "owner"]
-        if not is_admin_owner:
-            organization = OrganizationService.get_by_id(
-                db,
-                organization_id=current_user.organization_id
-            )
-            if organization and organization.owner_id == current_user.id:
-                is_admin_owner = True
-
-        if not is_admin_owner:
+        if not tem_permissao_usuario(current_user, "usuarios", "editar"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas administradores ou proprietários podem atualizar outros usuários."
+                detail="Você não tem permissão para atualizar outros usuários."
+            )
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if target and not is_self and not is_superuser and eh_administrador(target) and not eh_administrador(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas o administrador pode alterar outro administrador.",
+        )
+
+    if target and user_in.is_active is False and eh_administrador(target):
+        if AccessProfileService.contar_administradores(db, target.organization_id, excluir_id=target.id) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Não é possível inativar o último administrador da organização.",
             )
     
     # Verificar se email já existe (se foi fornecido)
@@ -204,60 +218,40 @@ def update_user_role(
     user_id: int,
     role_update: UserRoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_admin_or_owner)
+    current_user: User = Depends(exigir_permissao("usuarios", "editar"))
 ):
     """
-    Atualiza a role de um usuário da organização.
-    
-    **Apenas admins e owners podem realizar esta ação.**
-    
-    Roles disponíveis:
-    - **admin**: Acesso total, pode gerenciar usuários e configurações
-    - **member**: Acesso normal, pode criar e editar dados
-    - **viewer**: Apenas visualização, sem permissões de escrita
-    - **assistant**: Acesso a tudo exceto processos e jurimetria
-    
-    - **user_id**: ID do usuário a ter a role atualizada
-    - **role**: Nova role a ser atribuída
+    Atribui um perfil de acesso ao usuário.
+
+    O administrador pode atribuir qualquer perfil. Os demais só alteram
+    perfis que não sejam Administrador, e nunca o próprio.
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização."
         )
-    
-    # Buscar o usuário alvo
+
     target_user = UserService.get_by_id(db, user_id=user_id, organization_id=current_user.organization_id)
-    
     if not target_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado na sua organização"
         )
-    
-    # Não permitir alterar a própria role
-    if target_user.id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Você não pode alterar sua própria role"
-        )
-    
-    # Atualizar a role
-    updated_user = UserService.update_role(
-        db=db,
-        user_id=user_id,
-        role_update=role_update,
-        organization_id=current_user.organization_id
-    )
-    
-    if not updated_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Erro ao atualizar usuário"
-        )
-    
-    return updated_user
+
+    profile_id = role_update.profile_id
+    if profile_id is None and role_update.role:
+        perfil = AccessProfileService.resolver_por_papel(db, current_user.organization_id, role_update.role)
+        if perfil is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Perfil inválido para esta organização.")
+        profile_id = perfil.id
+
+    try:
+        return AccessProfileService.atribuir(db, current_user, target_user, profile_id)
+    except AcessoNegado as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except PerfilInvalido as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 @router.post(
@@ -268,14 +262,14 @@ def update_user_role(
 def unlink_organization(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_write_access)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
-    Desvincula o usuário da organização definindo `organization_id` como None.
+    Desvincula o usuário da organização.
 
-    Usuários só podem desvincular seus próprios perfis, a menos que sejam superuser.
+    A própria pessoa pode sair. Quem tem permissão de excluir usuários pode
+    desvincular os demais, exceto o último administrador.
     """
-    # Buscar usuário alvo (sem filtragem por organização para checar permissões)
     target_user = db.query(User).filter(User.id == user_id).first()
 
     if not target_user:
@@ -284,18 +278,32 @@ def unlink_organization(
             detail="Usuário não encontrado"
         )
 
-    # Permissões: o próprio usuário, superuser, ou admin/owner da mesma organização
     if current_user.id == user_id:
         org_param = current_user.organization_id
     elif UserService.is_superuser(current_user):
         org_param = None
-    elif (current_user.role or "").lower() in ["admin", "owner"] and target_user.organization_id == current_user.organization_id:
+    elif (
+        tem_permissao_usuario(current_user, "usuarios", "excluir")
+        and target_user.organization_id == current_user.organization_id
+    ):
+        if eh_administrador(target_user) and not eh_administrador(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas o administrador pode desvincular outro administrador.",
+            )
         org_param = current_user.organization_id
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você não tem permissão para desvincular este usuário"
         )
+
+    if target_user.organization_id and eh_administrador(target_user):
+        if AccessProfileService.contar_administradores(db, target_user.organization_id, excluir_id=target_user.id) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Não é possível desvincular o último administrador da organização.",
+            )
 
     user = UserService.unlink_organization(db=db, user_id=user_id, organization_id=org_param)
 
@@ -316,7 +324,7 @@ def unlink_organization(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_write_access)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Deleta um usuário (requer autenticação)

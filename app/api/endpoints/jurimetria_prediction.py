@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_legal_actions_access
+from app.api.deps import get_db, exigir_permissao
 from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
 from app.schemas.jurimetria_chat import JurimetriaChatRequest, JurimetriaChatResponse
 
@@ -17,7 +17,7 @@ router = APIRouter()
 def prever_tempo_tramitacao(
     tribunal: str,
     numero_processo: str,
-    _current_user = Depends(require_legal_actions_access)
+    _current_user = Depends(exigir_permissao("jurimetria", "visualizar"))
 ):
     """
     Consulta DataJud e retorna previsão de tempo de tramitação.
@@ -52,7 +52,7 @@ def prever_tempo_tramitacao(
 def chat_jurimetria(
     request: JurimetriaChatRequest,
     db: Session = Depends(get_db),
-    _current_user=Depends(require_legal_actions_access),
+    _current_user=Depends(exigir_permissao("jurimetria", "visualizar")),
 ):
     """
     Recebe uma mensagem em texto livre e retorna uma resposta do assistente

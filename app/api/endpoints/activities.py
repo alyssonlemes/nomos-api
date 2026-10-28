@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from app.api.deps import get_db, get_current_active_user, get_user_organization
+from app.api.deps import get_db, get_current_active_user, get_user_organization, exigir_permissao
 from app.schemas.activity import (
     ActivityCreate,
     ActivityUpdate,
@@ -27,7 +27,7 @@ def create_activity(
     activity_in: ActivityCreate,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "criar")),
 ):
     """Create a new activity (task or event)"""
     if activity_in.organization_id != organization_id:
@@ -53,7 +53,7 @@ def create_activity(
 def get_activities_kanban(
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "visualizar")),
 ):
     """Get activities grouped by status for Kanban view"""
     activities = ActivityService.list_for_kanban(db, organization_id)
@@ -82,7 +82,7 @@ def list_activities(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "visualizar")),
 ):
     """List activities with optional filters"""
     activities, total = ActivityService.list(
@@ -106,7 +106,7 @@ def get_activity(
     activity_id: int,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "visualizar")),
 ):
     """Get activity details"""
     activity = ActivityService.get_by_id(db, activity_id, organization_id)
@@ -121,7 +121,7 @@ def update_activity(
     activity_in: ActivityUpdate,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "editar")),
 ):
     """Update an activity"""
     try:
@@ -144,7 +144,7 @@ def move_activity(
     status_update: ActivityStatusUpdateRequest,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "editar")),
 ):
     """Move activity to new status (drag-drop in Kanban)"""
     activity = ActivityService.move(db, activity_id, organization_id, status_update, current_user.id)
@@ -158,7 +158,7 @@ def delete_activity(
     activity_id: int,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "excluir")),
 ):
     """Delete an activity"""
     activity = ActivityService.delete(db, activity_id, organization_id)
@@ -173,7 +173,7 @@ def add_comment(
     comment_in: CommentCreateRequest,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "editar")),
 ):
     """Add a comment to an activity"""
     comment = ActivityService.add_comment(
@@ -189,7 +189,7 @@ def get_comments(
     activity_id: int,
     db: Session = Depends(get_db),
     organization_id: int = Depends(get_user_organization),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "visualizar")),
 ):
     """Get all comments for an activity"""
     comments = ActivityService.list_comments(db, activity_id, organization_id)
@@ -203,7 +203,7 @@ def get_comments(
 def create_activity_column(
     column_in: ActivityColumnCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "criar")),
 ):
     """Create a custom Kanban column (admin only)"""
     # Validação multi-tenant: user só pode criar colunas em sua própria organização
@@ -220,7 +220,7 @@ def create_activity_column(
 def list_activity_columns(
     organization_id: int = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "visualizar")),
 ):
     """List all Kanban columns for organization"""
     # Validação multi-tenant: user só pode listar colunas de sua própria organização
@@ -238,7 +238,7 @@ def update_activity_column(
     column_id: int,
     column_in: ActivityColumnCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "editar")),
 ):
     """Update a Kanban column"""
     # Validação multi-tenant
@@ -267,7 +267,7 @@ def update_activity_column(
 def delete_activity_column(
     column_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(exigir_permissao("atividades", "excluir")),
 ):
     """Delete a Kanban column"""
     column = db.query(ActivityColumn).filter(ActivityColumn.id == column_id).first()

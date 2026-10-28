@@ -12,7 +12,7 @@ from app.schemas.legal_action import (
 )
 from app.services.legal_action_service import LegalActionService
 from app.models.user import User
-from app.api.deps import get_current_active_user, require_legal_actions_access, get_data_filter_user_id
+from app.api.deps import exigir_permissao, get_data_filter_user_id
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 def create_legal_action(
     action_in: LegalActionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access)
+    current_user: User = Depends(exigir_permissao("processos", "criar"))
 ):
     """
     Cria uma nova ação jurídica/processo (Etapa 3 do fluxo)
@@ -88,7 +88,7 @@ def list_legal_actions(
     sort_by: Optional[str] = Query(None, description="Campo de ordenação"),
     sort_dir: Optional[str] = Query("desc", description="Direção: asc ou desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
@@ -131,7 +131,7 @@ def list_legal_actions(
 def get_legal_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
@@ -167,7 +167,7 @@ def update_legal_action(
     action_id: int,
     action_in: LegalActionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """
@@ -210,7 +210,7 @@ def update_legal_action(
 def delete_legal_action(
     action_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_legal_actions_access),
+    current_user: User = Depends(exigir_permissao("processos", "excluir")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id)
 ):
     """

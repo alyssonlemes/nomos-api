@@ -30,7 +30,8 @@ class InvitationBase(BaseModel):
 
 class InvitationCreate(InvitationBase):
     """Schema para criar convite"""
-    role: InvitationRole = Field(InvitationRole.MEMBER, description="Papel que será atribuído ao usuário ao aceitar")
+    role: Optional[InvitationRole] = Field(None, description="Papel legado, usado quando profile_id não é enviado")
+    profile_id: Optional[int] = Field(None, description="Perfil de acesso que o convidado receberá")
 
 
 class InvitationAccept(BaseModel):
@@ -44,7 +45,8 @@ class InvitationResponse(InvitationBase):
     """Schema de resposta para Invitation"""
     id: int
     organization_id: int
-    role: Optional[InvitationRole] = None
+    role: Optional[str] = None
+    profile_id: Optional[int] = None
     status: InvitationStatus
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -57,7 +59,8 @@ class InvitationDetailResponse(InvitationBase):
     """Schema detalhado de Invitation com informações da organização"""
     id: int
     organization_id: int
-    role: Optional[InvitationRole] = None
+    role: Optional[str] = None
+    profile_id: Optional[int] = None
     organization_name: Optional[str] = None
     invited_by_email: Optional[str] = None
     status: InvitationStatus

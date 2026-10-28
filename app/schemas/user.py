@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -34,18 +34,25 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-class UserRoleUpdate(BaseModel):
-    """Schema para atualização de role do usuário (apenas admin/owner)"""
-    role: str = Field(..., description="Papel do usuário: ADMIN, OWNER, MEMBER, VIEWER, ASSISTANT")
+class PermissaoModulo(BaseModel):
+    """CRUD de um módulo."""
+    modulo: str
+    visualizar: bool = False
+    criar: bool = False
+    editar: bool = False
+    excluir: bool = False
 
-    @field_validator('role')
-    @classmethod
-    def validate_role(cls, v: str) -> str:
-        allowed_roles = ['ADMIN', 'OWNER', 'MEMBER', 'VIEWER', 'ASSISTANT']
-        role_upper = v.upper()
-        if role_upper not in allowed_roles:
-            raise ValueError(f'Role deve ser um dos seguintes: {", ".join(allowed_roles)}')
-        return role_upper
+
+class UserRoleUpdate(BaseModel):
+    """Atribui um perfil de acesso. Aceita profile_id ou o papel legado."""
+    profile_id: Optional[int] = Field(None, description="ID do perfil na organização")
+    role: Optional[str] = Field(None, description="Papel legado: ADMIN, OWNER, MEMBER, VIEWER, ASSISTANT, GESTOR")
+
+    @model_validator(mode="after")
+    def exigir_perfil(self):
+        if self.profile_id is None and not (self.role and self.role.strip()):
+            raise ValueError("Informe o perfil do usuário")
+        return self
 
 
 class UserLogin(BaseModel):
@@ -60,6 +67,10 @@ class UserResponse(UserBase):
     """Schema de resposta para User"""
     id: int
     role: Optional[str] = None
+    profile_id: Optional[int] = None
+    profile_name: Optional[str] = None
+    isolate_data: bool = False
+    permissions: list[PermissaoModulo] = []
     organization_id: Optional[int] = None
     is_active: bool
     is_superuser: bool
