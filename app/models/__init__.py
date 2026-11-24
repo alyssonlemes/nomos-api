@@ -1,6 +1,7 @@
 from app.models.user import User
 from app.models.access_profile import AccessProfile
 from app.models.organization import Organization
+from app.models.mensalidade import Mensalidade
 from app.models.invitation import Invitation
 from app.models.client import Client
 from app.models.legal_action import LegalAction
@@ -27,6 +28,7 @@ __all__ = [
     "User",
     "AccessProfile",
     "Organization",
+    "Mensalidade",
     "Invitation",
     "Client",
     "LegalAction",

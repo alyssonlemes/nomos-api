@@ -19,6 +19,8 @@ class Organization(Base):
     owner = relationship("User", foreign_keys=[owner_id], backref="owned_organization")
     
     plano = Column(String(32), nullable=False, default="essencial", server_default="essencial")
+    mensalidade_centavos = Column(Integer, nullable=True)
+    mensalidade_dia = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
