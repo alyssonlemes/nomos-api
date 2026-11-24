@@ -12,7 +12,6 @@ from app.models.user import User
 
 security = HTTPBearer()
 
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -67,7 +66,6 @@ def get_current_user(
     
     return user
 
-
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -84,7 +82,6 @@ def get_current_active_user(
         from app.services.access_profile_service import AccessProfileService
         current_user = AccessProfileService.garantir_vinculo(db, current_user)
     return current_user
-
 
 def get_current_superuser(
     current_user: User = Depends(get_current_user)
@@ -108,7 +105,6 @@ def get_current_superuser(
         )
     return current_user
 
-
 def get_user_organization(
     current_user: User = Depends(get_current_active_user)
 ) -> int:
@@ -131,7 +127,6 @@ def get_user_organization(
         )
     return current_user.organization_id
 
-
 def exigir_permissao(modulo: str, acao: str = "visualizar"):
     """Exige a ação de CRUD no módulo do perfil do usuário."""
 
@@ -148,7 +143,6 @@ def exigir_permissao(modulo: str, acao: str = "visualizar"):
         return current_user
 
     return _dependencia
-
 
 def get_admin_or_owner(
     current_user: User = Depends(get_current_active_user),
@@ -184,13 +178,11 @@ def get_admin_or_owner(
         detail="Você não tem permissão para gerenciar usuários."
     )
 
-
 def require_legal_actions_access(
     current_user: User = Depends(exigir_permissao("processos", "visualizar"))
 ) -> User:
     """Compatibilidade: visualizar processos."""
     return current_user
-
 
 def require_write_access(
     current_user: User = Depends(get_current_active_user)
@@ -212,7 +204,6 @@ def require_write_access(
             detail="Você não tem permissão para alterar dados.",
         )
     return current_user
-
 
 def get_data_filter_user_id(
     current_user: User = Depends(get_current_active_user)

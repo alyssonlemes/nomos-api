@@ -2,7 +2,6 @@ from typing import Tuple
 
 import pandas as pd
 
-
 def build_feature_matrices(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame
@@ -58,7 +57,6 @@ def build_feature_matrices(
 
     return X_train, y_train, X_test, y_test
 
-
 def build_inference_matrix(
     features_input: dict,
     feature_columns: list[str]
@@ -81,7 +79,6 @@ def build_inference_matrix(
 
     feature_df = df.reindex(columns=feature_columns, fill_value=0)
     return feature_df
-
 
 def _prepare_dates(df: pd.DataFrame) -> pd.DataFrame:
     df["data_ajuizamento"] = pd.to_datetime(df["data_ajuizamento"], errors="coerce")

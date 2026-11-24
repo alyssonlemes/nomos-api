@@ -8,9 +8,7 @@ from app.ml.features import build_feature_matrices
 from app.ml.evaluate import evaluate_model
 from app.ml.model_registry import save_model
 
-
 MIN_TRAINING_RECORDS = 500
-
 
 def train_pipeline(min_records: int = MIN_TRAINING_RECORDS) -> Tuple[str, Dict[str, float], int]:
     """

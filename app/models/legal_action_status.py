@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 
-
 class LegalActionStatus(Base):
     """
     Catálogo de status jurídicos de ações.

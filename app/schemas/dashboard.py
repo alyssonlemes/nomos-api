@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Dict
 
-
 class DashboardStats(BaseModel):
     """Schema de resposta para estatísticas do dashboard"""
     total_clients: int

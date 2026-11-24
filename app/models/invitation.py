@@ -5,13 +5,11 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 class InvitationStatus(str, Enum):
     """Status de um convite"""
     PENDING = "pending"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
-
 
 class Invitation(Base):
     """Modelo de Convite para organização"""

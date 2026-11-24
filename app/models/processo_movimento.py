@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 
-
 class ProcessoMovimento(Base):
     """
     Movimentações de um processo judicial obtidas via DataJud.

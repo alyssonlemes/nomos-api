@@ -5,8 +5,7 @@ from sqlalchemy import func
 
 from app.models.legal_action_status import LegalActionStatus
 from app.schemas.legal_action_status import LegalActionStatusCreate, LegalActionStatusUpdate
-from app.core.listing import apply_listing_sort
-
+from app.core.listing import paginate
 
 class LegalActionStatusService:
     """Serviço para CRUD de status jurídicos de ação."""
@@ -40,8 +39,7 @@ class LegalActionStatusService:
             query = query.filter(
                 (LegalActionStatus.name.ilike(term)) | (LegalActionStatus.code.ilike(term))
             )
-        total = query.count()
-        query = apply_listing_sort(
+        return paginate(
             query,
             columns={
                 "name": LegalActionStatus.name,
@@ -53,9 +51,9 @@ class LegalActionStatusService:
             sort_dir=sort_dir,
             default="id",
             tiebreaker=LegalActionStatus.id,
+            skip=skip,
+            limit=limit,
         )
-        items = query.offset(skip).limit(limit).all()
-        return items, total
 
     @staticmethod
     def create(db: Session, data_in: LegalActionStatusCreate) -> Optional[LegalActionStatus]:

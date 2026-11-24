@@ -2,14 +2,12 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-
 class ChatHistoricoItem(BaseModel):
     """
     Um item do histórico de conversa (role + conteúdo).
     """
     role: str = Field(..., description="'user' ou 'assistant'")
     content: str = Field(..., description="Texto da mensagem")
-
 
 class JurimetriaChatRequest(BaseModel):
     """
@@ -20,7 +18,6 @@ class JurimetriaChatRequest(BaseModel):
         default_factory=list,
         description="Histórico das mensagens anteriores da conversa (excluindo a mensagem atual)",
     )
-
 
 class JurimetriaChatResponse(BaseModel):
     """

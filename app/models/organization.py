@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 class Organization(Base):
     """Modelo de Organização - Escritório de advocacia"""
     __tablename__ = "organizations"
@@ -19,6 +18,7 @@ class Organization(Base):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     owner = relationship("User", foreign_keys=[owner_id], backref="owned_organization")
     
+    plano = Column(String(32), nullable=False, default="essencial", server_default="essencial")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

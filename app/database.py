@@ -5,12 +5,10 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-
 def _normalize_database_url(url: str) -> str:
     if url.startswith("postgres://"):
         return "postgresql://" + url[len("postgres://") :]
     return url
-
 
 database_url = _normalize_database_url(settings.DATABASE_URL)
 is_sqlite = database_url.startswith("sqlite")
@@ -45,7 +43,6 @@ else:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
-
 
 def get_db():
     """

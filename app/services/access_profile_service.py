@@ -16,14 +16,11 @@ from app.models.access_profile import AccessProfile
 from app.models.organization import Organization
 from app.models.user import User
 
-
 class AcessoNegado(Exception):
     pass
 
-
 class PerfilInvalido(Exception):
     pass
-
 
 class AccessProfileService:
     @staticmethod

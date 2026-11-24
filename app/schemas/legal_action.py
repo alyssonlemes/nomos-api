@@ -5,9 +5,6 @@ from datetime import datetime, date
 from app.schemas.legal_action_type import LegalActionTypeResponse
 from app.schemas.legal_action_status import LegalActionStatusResponse
 
-
-# ========== LegalAction Schemas ==========
-
 class LegalActionBase(BaseModel):
     """Schema base para LegalAction"""
     number: str = Field(..., min_length=3, description="Número único do processo")
@@ -38,7 +35,6 @@ class LegalActionBase(BaseModel):
     valor_causa: Optional[float] = None
     segredo_justica: Optional[bool] = False
 
-
 class ProcessoParteCreate(BaseModel):
     polo: Optional[str] = None
     tipo_participacao: Optional[str] = None
@@ -66,7 +62,6 @@ class LegalActionCreate(LegalActionBase):
     legal_status: Optional[str] = None
     partes: Optional[list[ProcessoParteCreate]] = None
     movimentos: Optional[list[ProcessoMovimentoCreate]] = None
-
 
 class LegalActionUpdate(BaseModel):
     """Schema para atualização de ação jurídica"""
@@ -98,14 +93,12 @@ class LegalActionUpdate(BaseModel):
     valor_causa: Optional[float] = None
     segredo_justica: Optional[bool] = None
 
-
 class LegalActionAssignedUserResponse(BaseModel):
     id: int
     full_name: Optional[str] = None
     email: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class ProcessoParteResponse(BaseModel):
     id: int
@@ -118,7 +111,6 @@ class ProcessoParteResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class ProcessoMovimentoResponse(BaseModel):
     id: int
     codigo: Optional[str] = None
@@ -127,7 +119,6 @@ class ProcessoMovimentoResponse(BaseModel):
     complemento_json: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class LegalActionResponse(BaseModel):
     """Schema de resposta para LegalAction (com tipo aninhado)"""
@@ -169,7 +160,6 @@ class LegalActionResponse(BaseModel):
     movimentos: list[ProcessoMovimentoResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class LegalActionListResponse(BaseModel):
     """Schema para lista de ações jurídicas"""

@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 
-
 class LegalActionType(Base):
     """
     Catálogo de tipos de ações jurídicas (CRUD próprio).

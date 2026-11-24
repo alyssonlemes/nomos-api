@@ -5,7 +5,6 @@ from datetime import datetime
 
 from app.models.notification import Notification
 
-
 class NotificationService:
     """Servico para notificacoes in-app."""
 

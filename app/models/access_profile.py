@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 class AccessProfile(Base):
     """Perfil de acesso de uma organização, com CRUD por módulo."""
 

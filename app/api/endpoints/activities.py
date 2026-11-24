@@ -20,8 +20,6 @@ from app.services.activity_service import ActivityService, ActivityColumnService
 
 router = APIRouter()
 
-
-# ===== Activity Endpoints =====
 @router.post("/", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
 def create_activity(
     activity_in: ActivityCreate,
@@ -48,7 +46,6 @@ def create_activity(
             detail=str(exc),
         )
 
-
 @router.get("/kanban", response_model=list[ActivityKanbanResponse])
 def get_activities_kanban(
     db: Session = Depends(get_db),
@@ -71,7 +68,6 @@ def get_activities_kanban(
         ActivityKanbanResponse(status=status, activities=acts)
         for status, acts in kanban_dict.items()
     ]
-
 
 @router.get("/", response_model=ActivityListResponse)
 def list_activities(
@@ -100,7 +96,6 @@ def list_activities(
         activities=[ActivityResponse.from_orm(a) for a in activities],
     )
 
-
 @router.get("/{activity_id}", response_model=ActivityResponse)
 def get_activity(
     activity_id: int,
@@ -113,7 +108,6 @@ def get_activity(
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
     return activity
-
 
 @router.patch("/{activity_id}", response_model=ActivityResponse)
 def update_activity(
@@ -137,7 +131,6 @@ def update_activity(
         raise HTTPException(status_code=404, detail="Activity not found")
     return activity
 
-
 @router.post("/{activity_id}/move", response_model=ActivityResponse)
 def move_activity(
     activity_id: int,
@@ -152,7 +145,6 @@ def move_activity(
         raise HTTPException(status_code=404, detail="Activity not found")
     return activity
 
-
 @router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_activity(
     activity_id: int,
@@ -165,8 +157,6 @@ def delete_activity(
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-
-# ===== Comments =====
 @router.post("/{activity_id}/comments", status_code=status.HTTP_201_CREATED)
 def add_comment(
     activity_id: int,
@@ -183,7 +173,6 @@ def add_comment(
         raise HTTPException(status_code=404, detail="Activity not found")
     return comment
 
-
 @router.get("/{activity_id}/comments")
 def get_comments(
     activity_id: int,
@@ -197,8 +186,6 @@ def get_comments(
         raise HTTPException(status_code=404, detail="Activity not found")
     return comments
 
-
-# ===== Activity Columns (Kanban Customization) =====
 @router.post("/columns/create", response_model=ActivityColumnResponse, status_code=status.HTTP_201_CREATED)
 def create_activity_column(
     column_in: ActivityColumnCreate,
@@ -215,7 +202,6 @@ def create_activity_column(
 
     return ActivityColumnService.create(db, column_in)
 
-
 @router.get("/columns/list", response_model=list[ActivityColumnResponse])
 def list_activity_columns(
     organization_id: int = Query(...),
@@ -231,7 +217,6 @@ def list_activity_columns(
         )
 
     return ActivityColumnService.list(db, organization_id)
-
 
 @router.patch("/columns/{column_id}", response_model=ActivityColumnResponse)
 def update_activity_column(
@@ -261,7 +246,6 @@ def update_activity_column(
     if not updated:
         raise HTTPException(status_code=404, detail="Column not found")
     return updated
-
 
 @router.delete("/columns/{column_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_activity_column(

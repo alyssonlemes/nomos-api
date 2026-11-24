@@ -11,7 +11,6 @@ from app.schemas.jurimetria_prediction import JurimetriaPredictionResponse
 
 logger = logging.getLogger(__name__)
 
-
 class JurimetriaPredictionService:
     """
     Serviço de predição de tempo de tramitação para processos existentes no DataJud.

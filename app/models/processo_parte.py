@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 
-
 class ProcessoParte(Base):
     """
     Partes de um processo judicial obtidas via DataJud.
@@ -53,7 +52,6 @@ class ProcessoParte(Base):
         nullable=True,
     )
 
-    # Relationships
     legal_action = relationship("LegalAction", back_populates="partes")
     client = relationship("Client", foreign_keys=[client_id])
 

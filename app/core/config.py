@@ -3,7 +3,6 @@ from typing import Any, Optional
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
     """
     Configurações da aplicação
@@ -32,6 +31,12 @@ class Settings(BaseSettings):
 
     # DataJud
     DATAJUD_API_KEY: Optional[str] = None
+
+    # Escavador Business API v2 — monitoramento com callback
+    # Token de acesso (painel da API) e token de segurança do callback.
+    ESCAVADOR_API_TOKEN: Optional[str] = None
+    ESCAVADOR_CALLBACK_TOKEN: Optional[str] = None
+    ESCAVADOR_API_BASE: str = "https://api.escavador.com/api/v2"
 
     # Frontend publicado (ex: https://nomos-web.onrender.com)
     FRONTEND_URL: Optional[str] = None
@@ -96,6 +101,5 @@ class Settings(BaseSettings):
             if frontend and frontend not in origins:
                 origins.append(frontend)
         return origins
-
 
 settings = Settings()

@@ -14,22 +14,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-from app.database import Base
+import app.models  # noqa: F401
 from app.core.config import settings
-
-# Import all models to ensure they are registered
-from app.models.user import User
-from app.models.access_profile import AccessProfile
-from app.models.organization import Organization
-from app.models.invitation import Invitation
-from app.models.client import Client
-from app.models.legal_action import LegalAction
-from app.models.legal_action_type import LegalActionType
-from app.models.jurimetria_dataset import JurimetriaDataset
+from app.database import Base
 
 target_metadata = Base.metadata
 

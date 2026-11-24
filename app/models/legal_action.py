@@ -5,7 +5,6 @@ import enum
 
 from app.database import Base
 
-
 class LegalAction(Base):
     """
     Modelo de Ação Jurídica / Processo

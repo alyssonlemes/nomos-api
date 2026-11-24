@@ -8,6 +8,7 @@ from app.schemas.invitation import InvitationCreate, InvitationResponse, Invitat
 from app.services.invitation_service import InvitationService
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
+from app.services.plano_service import LimiteDoPlano, PlanoService
 from app.models.user import User
 from app.models.invitation import InvitationStatus, Invitation
 from app.api.deps import get_current_active_user, exigir_permissao
@@ -15,7 +16,6 @@ from app.core.perfis import eh_administrador, papel_convite, papel_legado
 from app.services.access_profile_service import AccessProfileService
 
 router = APIRouter()
-
 
 @router.post(
     "",
@@ -31,14 +31,12 @@ def invite_user(
     """
     Convida um usuário para a organização com um perfil de acesso.
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização para convidar usuários."
         )
     
-    # Verificar se organização existe
     organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
     if not organization:
         raise HTTPException(
@@ -46,7 +44,6 @@ def invite_user(
             detail="Organização não encontrada."
         )
     
-    # Verificar se já existe convite pendente
     existing_invitations = db.query(Invitation).filter(
         Invitation.email == invite_in.email,
         Invitation.organization_id == current_user.organization_id,
@@ -59,15 +56,18 @@ def invite_user(
             detail="Já existe um convite pendente para este email nesta organização."
         )
     
-    # Verificar se usuário já está na organização
     user = UserService.get_by_email(db, email=invite_in.email)
     if user and user.organization_id == current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este usuário já faz parte da organização."
         )
+
+    try:
+        PlanoService.garantir_novo_usuario(db, current_user.organization_id)
+    except LimiteDoPlano as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     
-    # Criar convite
     perfil = None
     if invite_in.profile_id is not None:
         perfil = AccessProfileService.buscar(db, invite_in.profile_id, current_user.organization_id)
@@ -95,7 +95,6 @@ def invite_user(
     
     return invitation
 
-
 @router.get(
     "",
     response_model=InvitationListResponse,
@@ -113,14 +112,12 @@ def list_organization_invitations(
     
     Apenas administradores ou proprietários podem listar convites.
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização."
         )
     
-    # Verificar se organização existe
     organization = OrganizationService.get_by_id(db, organization_id=current_user.organization_id)
     if not organization:
         raise HTTPException(
@@ -128,7 +125,6 @@ def list_organization_invitations(
             detail="Organização não encontrada."
         )
     
-    # Buscar convites
     query = db.query(Invitation).filter(Invitation.organization_id == current_user.organization_id)
     
     if status_filter:
@@ -137,7 +133,6 @@ def list_organization_invitations(
     total = query.count()
     invitations = query.offset(skip).limit(limit).all()
     
-    # Montar response detalhado
     detailed_invitations = []
     for inv in invitations:
         detailed_invitations.append({
@@ -155,7 +150,6 @@ def list_organization_invitations(
     
     return InvitationListResponse(total=total, invitations=detailed_invitations)
 
-
 @router.get(
     "/my-invitations",
     response_model=InvitationListResponse,
@@ -172,10 +166,8 @@ def list_my_invitations(
     
     Estes são os convites que ele pode aceitar para se juntar a organizações.
     """
-    # Buscar convites pendentes
     invitations = InvitationService.get_pending_by_email(db, email=current_user.email)
     
-    # Montar response detalhado
     detailed_invitations = []
     for inv in invitations:
         org = OrganizationService.get_by_id(db, organization_id=inv.organization_id)
@@ -194,7 +186,6 @@ def list_my_invitations(
     
     return InvitationListResponse(total=len(detailed_invitations), invitations=detailed_invitations)
 
-
 @router.post(
     "/{invitation_id}/accept",
     response_model=InvitationResponse,
@@ -210,7 +201,6 @@ def accept_invitation(
     
     O usuário será adicionado à organização após aceitar.
     """
-    # Buscar convite
     invitation = InvitationService.get_by_id(db, invitation_id=invitation_id)
     
     if not invitation:
@@ -219,28 +209,29 @@ def accept_invitation(
             detail="Convite não encontrado"
         )
     
-    # Verificar se convite é para este usuário
     if invitation.email != current_user.email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Este convite não é para você"
         )
     
-    # Verificar se convite ainda está pendente
     if invitation.status != InvitationStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Este convite já foi {invitation.status}"
         )
     
-    # Verificar se usuário já está em outra organização
     if current_user.organization_id is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Você já faz parte de uma organização. Não é possível aceitar outro convite."
         )
+
+    try:
+        PlanoService.garantir_aceite(db, invitation.organization_id)
+    except LimiteDoPlano as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     
-    # Aceitar convite
     invitation = InvitationService.accept(db=db, invitation_id=invitation_id)
 
     perfil = None
@@ -269,7 +260,6 @@ def accept_invitation(
 
     return invitation
 
-
 @router.post(
     "/{invitation_id}/reject",
     response_model=InvitationResponse,
@@ -283,7 +273,6 @@ def reject_invitation(
     """
     Rejeita um convite de organização
     """
-    # Buscar convite
     invitation = InvitationService.get_by_id(db, invitation_id=invitation_id)
     
     if not invitation:
@@ -292,21 +281,18 @@ def reject_invitation(
             detail="Convite não encontrado"
         )
     
-    # Verificar se convite é para este usuário
     if invitation.email != current_user.email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Este convite não é para você"
         )
     
-    # Verificar se convite ainda está pendente
     if invitation.status != InvitationStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Este convite já foi {invitation.status}"
         )
     
-    # Rejeitar convite
     invitation = InvitationService.reject(db=db, invitation_id=invitation_id)
     
     return invitation

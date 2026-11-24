@@ -2,7 +2,6 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-
 class JurimetriaPredictionResponse(BaseModel):
     """
     Resposta da predição de tempo de tramitação

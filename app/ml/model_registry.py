@@ -5,11 +5,9 @@ from typing import Dict, Optional, Tuple
 
 import joblib
 
-
 BASE_DIR = os.path.dirname(__file__)
 REGISTRY_DIR = os.path.join(BASE_DIR, "models")
 ACTIVE_FILE = os.path.join(REGISTRY_DIR, "active_model.json")
-
 
 def save_model(model, metrics: Dict[str, float], total_records: int, feature_columns: list[str]) -> str:
     """
@@ -41,7 +39,6 @@ def save_model(model, metrics: Dict[str, float], total_records: int, feature_col
     _set_active_model(version)
     return version
 
-
 def _set_active_model(version: str) -> None:
     payload = {
         "version": version,
@@ -50,13 +47,11 @@ def _set_active_model(version: str) -> None:
     with open(ACTIVE_FILE, "w", encoding="utf-8") as file:
         json.dump(payload, file, ensure_ascii=False, indent=2)
 
-
 def get_active_model_info() -> Optional[Dict[str, str]]:
     if not os.path.exists(ACTIVE_FILE):
         return None
     with open(ACTIVE_FILE, "r", encoding="utf-8") as file:
         return json.load(file)
-
 
 def load_active_model() -> Tuple[Optional[object], Optional[Dict[str, object]]]:
     """

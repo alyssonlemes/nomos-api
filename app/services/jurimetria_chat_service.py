@@ -20,10 +20,7 @@ from sqlalchemy.orm import Session
 from app.models.jurimetria_dataset import JurimetriaDataset
 from app.schemas.jurimetria_chat import JurimetriaChatRequest, JurimetriaChatResponse
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Mapeamento de aliases de tribunais conhecidos
-# ─────────────────────────────────────────────────────────────────────────────
 
 TRIBUNAL_ALIASES: dict[str, str] = {
     # Tribunais de Justiça Estaduais
@@ -87,16 +84,13 @@ HELP_MESSAGE = (
     "Ex: *Qual o tempo médio no Cível do TJSP?*"
 )
 
-
 class JurimetriaChatService:
     """
     Serviço de chat de jurimetria — interpreta prompts de texto livre
     e responde com predições ML ou estatísticas do banco.
     """
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Ponto de entrada principal
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def processar(
@@ -173,7 +167,6 @@ class JurimetriaChatService:
             )
 
             if ja_analisou_processo:
-                # Verificar se parece um CNJ mal formatado
                 parece_cnj = re.search(r"\d{3,7}-\d{1,2}\.\d{4}\.\d{1,2}\.\d{1,2}\.\d{1,4}", mensagem)
                 parece_cnj_raw = re.search(r"\b\d{14,25}\b", mensagem)
                 
@@ -218,9 +211,7 @@ class JurimetriaChatService:
             tipo="ajuda",
         )
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Extração de entidades
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _extrair_numero_processo(texto: str) -> Optional[str]:
@@ -255,9 +246,7 @@ class JurimetriaChatService:
         texto_lower = texto.lower()
         return any(kw in texto_lower for kw in STAT_KEYWORDS)
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Fluxo 1: Predição ML com número de processo
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _fluxo_predicao(
@@ -409,9 +398,7 @@ class JurimetriaChatService:
             tempo_estimado_restante_dias=restante,
         )
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Fluxo 2: Estatísticas do banco local
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _fluxo_estatisticas(
@@ -462,7 +449,6 @@ class JurimetriaChatService:
         maximo = int(np.max(arr))
         total_processos = len(registros)
 
-        # Montar cabeçalho
         cabecalho_partes = []
         if area:
             cabecalho_partes.append(f"área **{area}**")

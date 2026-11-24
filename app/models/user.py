@@ -5,7 +5,6 @@ from sqlalchemy.sql import func
 from app.core.perfis import isola_dados_usuario, nome_perfil, permissoes_efetivas_usuario
 from app.database import Base
 
-
 class User(Base):
     """
     Modelo de Usuário
@@ -48,6 +47,5 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
-
 
 from app.models.access_profile import AccessProfile  # noqa: E402,F401

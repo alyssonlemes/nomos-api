@@ -7,7 +7,6 @@ from app.schemas.jurimetria_chat import JurimetriaChatRequest, JurimetriaChatRes
 
 router = APIRouter()
 
-
 @router.post(
     "/previsao-tempo/{tribunal}/{numero_processo}",
     response_model=JurimetriaPredictionResponse,
@@ -41,7 +40,6 @@ def prever_tempo_tramitacao(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar predição"
         ) from exc
-
 
 @router.post(
     "/chat",

@@ -3,15 +3,13 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
-from app.core.config import settings
-from app.database import engine, Base
+import app.models  # noqa: F401
 from app.api import api_router
+from app.core.config import settings
+from app.database import Base, engine
 
-# Criar todas as tabelas no banco de dados automaticamente
-# Isso lê todos os models e cria as tabelas se não existirem
 Base.metadata.create_all(bind=engine)
 
-# Criar aplicação FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.DESCRIPTION,
@@ -21,7 +19,6 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins(),
@@ -31,7 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir routers da API v1
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
@@ -44,7 +40,6 @@ async def handle_integrity_error(request: Request, exc: IntegrityError):
             "error": str(exc.orig)
         }
     )
-
 
 @app.get("/", tags=["Root"])
 def root():
@@ -59,7 +54,6 @@ def root():
         "api_v1": settings.API_V1_PREFIX
     }
 
-
 @app.get("/health", tags=["Health"])
 def health_check():
     """
@@ -69,7 +63,6 @@ def health_check():
         "status": "healthy",
         "version": settings.VERSION
     }
-
 
 if __name__ == "__main__":
     import os

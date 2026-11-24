@@ -1,38 +1,25 @@
-"""
-Schemas para Análise de Processos Judiciais.
-
-Estrutura de dados conforme Seção 4 do Master Prompt:
-- ProcessoAnalisado: dados individuais por processo (Seção 4.1)
-- EstatisticasArea: agregação por área jurídica (Seção 4.2)
-- Schemas de request/response para os endpoints de análise
-"""
+"""Contratos da análise de processos: processo individual, estatística por área e filtros."""
 
 from datetime import date
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-# ────────────────────────── Dados individuais (Seção 4.1) ──────────────────────
-
 class ClasseProcessualInfo(BaseModel):
     """Informação da classe processual do processo."""
     codigo: Optional[str] = None
     nome: Optional[str] = None
-
 
 class AssuntoInfo(BaseModel):
     """Informação de um assunto relacionado ao processo."""
     codigo: Optional[str] = None
     nome: Optional[str] = None
 
-
 class MovimentoInfo(BaseModel):
     """Movimento processual simplificado."""
     nome: str
     data_hora: Optional[str] = None
     codigo: Optional[str] = None
-
 
 class ProcessoAnalisado(BaseModel):
     """
@@ -55,9 +42,6 @@ class ProcessoAnalisado(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-# ────────────────────────── Estatísticas Agregadas (Seção 4.2) ──────────────────
-
 class EstatisticasArea(BaseModel):
     """
     Estatísticas agregadas por área jurídica conforme Seção 4.2 do MD.
@@ -76,7 +60,6 @@ class EstatisticasArea(BaseModel):
     duracao_minima_dias: Optional[int] = None
     duracao_maxima_dias: Optional[int] = None
 
-
 class EstatisticasTribunal(BaseModel):
     """Estatísticas por tribunal."""
     tribunal: str
@@ -85,9 +68,6 @@ class EstatisticasTribunal(BaseModel):
     total_em_andamento: int = 0
     tempo_medio_dias: Optional[float] = None
     areas: List[EstatisticasArea] = []
-
-
-# ────────────────────────── Requests ──────────────────────────────────────────
 
 class AnaliseProcessosFiltro(BaseModel):
     """
@@ -138,7 +118,6 @@ class AnaliseProcessosFiltro(BaseModel):
         description="Número máximo de páginas a buscar"
     )
 
-
 class AnaliseEstatisticasFiltro(BaseModel):
     """Filtros para consulta de estatísticas agregadas."""
     tribunal: Optional[str] = Field(
@@ -150,9 +129,6 @@ class AnaliseEstatisticasFiltro(BaseModel):
         description="Filtrar por área jurídica específica"
     )
 
-
-# ────────────────────────── Responses ──────────────────────────────────────────
-
 class AnaliseProcessosResponse(BaseModel):
     """Resposta da coleta e análise de processos."""
     total_processos_encontrados: int
@@ -162,7 +138,6 @@ class AnaliseProcessosResponse(BaseModel):
     processos: List[ProcessoAnalisado] = []
     estatisticas: Optional[EstatisticasArea] = None
 
-
 class AnaliseEstatisticasResponse(BaseModel):
     """Resposta da consulta de estatísticas agregadas."""
     total_geral: int
@@ -170,7 +145,6 @@ class AnaliseEstatisticasResponse(BaseModel):
     total_em_andamento: int
     estatisticas_por_area: List[EstatisticasArea] = []
     estatisticas_por_tribunal: List[EstatisticasTribunal] = []
-
 
 class AreasDisponiveisResponse(BaseModel):
     """Lista de áreas jurídicas disponíveis no mapeamento TPU."""

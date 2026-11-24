@@ -3,7 +3,6 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 class JurimetriaDataset(Base):
     """
     Dataset de jurimetria pronto para consumo em ML e análise de processos.
@@ -35,7 +34,6 @@ class JurimetriaDataset(Base):
     classe_processual = Column(String, nullable=True)
     assunto_codigo = Column(String, nullable=True)
 
-    # ── Campos adicionados para análise de processos (Seções 2-4 do MD) ──
     area_juridica_principal = Column(String, nullable=True)
     classe_principal_nome = Column(String, nullable=True)
     assuntos_json = Column(Text, nullable=True)  # JSON serializado

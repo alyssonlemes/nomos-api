@@ -1,12 +1,4 @@
-"""
-Serviço de Análise de Processos Judiciais.
-
-Implementa todas as funcionalidades descritas no Master Prompt:
-- Seção 1: Integração com API DataJud (search_after)
-- Seção 2: Filtragem por área jurídica (TPU)
-- Seção 3: Cálculo de tempo médio (dataFim inferida de movimentos)
-- Seção 4: Preparação de dados para modelo de IA
-"""
+"""Coleta processos no DataJud, classifica a área pela TPU e calcula o tempo de tramitação."""
 
 import json
 import time
@@ -40,7 +32,6 @@ from app.services.tpu_mapping import (
     obter_codigos_por_area,
 )
 
-
 class ProcessAnalysisService:
     """
     Serviço principal de análise de processos judiciais.
@@ -54,8 +45,6 @@ class ProcessAnalysisService:
 
     RATE_LIMIT_SECONDS = 0.5
     REQUEST_TIMEOUT_SECONDS = 30
-
-    # ──────────────────── 1. Coleta e Análise Principal ───────────────────────
 
     @staticmethod
     def coletar_e_analisar(
@@ -179,8 +168,6 @@ class ProcessAnalysisService:
             estatisticas=estatisticas,
         )
 
-    # ──────────────────── 2. Estatísticas Agregadas (Seção 4.2) ───────────────
-
     @staticmethod
     def obter_estatisticas(
         db: Session,
@@ -280,8 +267,6 @@ class ProcessAnalysisService:
             estatisticas_por_area=estatisticas_por_area,
             estatisticas_por_tribunal=estatisticas_por_tribunal,
         )
-
-    # ──────────────────── Query Builders ──────────────────────────────────────
 
     @staticmethod
     def _build_search_after_query(
@@ -399,8 +384,6 @@ class ProcessAnalysisService:
             filters.append({"terms": {"assuntos.codigo": int_assuntos}})
 
         return filters
-
-    # ──────────────────── Processamento de Hits (Seções 3 e 4) ────────────────
 
     @staticmethod
     def _process_hits_with_analysis(
@@ -548,8 +531,6 @@ class ProcessAnalysisService:
 
         return processos, dataset_rows
 
-    # ──────────────────── Persistência ────────────────────────────────────────
-
     @staticmethod
     def _persist_page(
         db: Session,
@@ -606,8 +587,6 @@ class ProcessAnalysisService:
         except Exception as exc:
             db.rollback()
             raise RuntimeError("Erro ao persistir dados de análise") from exc
-
-    # ──────────────────── Cálculos Estatísticos (Seção 4.2) ───────────────────
 
     @staticmethod
     def _calcular_estatisticas_lista(
@@ -685,8 +664,6 @@ class ProcessAnalysisService:
             duracao_maxima_dias=int(np.max(arr)),
         )
 
-    # ──────────────────── HTTP Client ─────────────────────────────────────────
-
     @staticmethod
     def _post_json(
         url: str, api_key: str, payload: Dict[str, Any]
@@ -728,8 +705,6 @@ class ProcessAnalysisService:
         if isinstance(total, int):
             return total
         return 0
-
-    # ──────────────────── Utilitários ─────────────────────────────────────────
 
     @staticmethod
     def _parse_date(value: Optional[Any]) -> Optional[date]:

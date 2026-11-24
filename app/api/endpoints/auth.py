@@ -9,7 +9,6 @@ from app.core.config import settings
 
 router = APIRouter()
 
-
 @router.post("/login", response_model=Token, summary="Login de usuário")
 def login(
     login_data: UserLogin,

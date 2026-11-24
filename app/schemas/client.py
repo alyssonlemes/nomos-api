@@ -3,12 +3,10 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 
-
 class ClientType(str, Enum):
     """Tipo de cliente"""
     INDIVIDUAL = "individual"
     BUSINESS = "business"
-
 
 class ClientStatus(str, Enum):
     """Status do cliente"""
@@ -16,7 +14,6 @@ class ClientStatus(str, Enum):
     INACTIVE = "inactive"
     PROSPECT = "prospect"
     ARCHIVED = "archived"
-
 
 class ClientBase(BaseModel):
     """Schema base para Client"""
@@ -32,11 +29,9 @@ class ClientBase(BaseModel):
     zip_code: Optional[str] = None
     company_name: Optional[str] = None
 
-
 class ClientCreate(ClientBase):
     """Schema para criação de cliente"""
     pass
-
 
 class ClientUpdate(BaseModel):
     """Schema para atualização de cliente"""
@@ -47,7 +42,6 @@ class ClientUpdate(BaseModel):
     client_type: Optional[ClientType] = None
     status: Optional[ClientStatus] = None
 
-
 class ClientResponse(ClientBase):
     """Schema de resposta para Client"""
     id: int
@@ -57,7 +51,6 @@ class ClientResponse(ClientBase):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class ClientListResponse(BaseModel):
     """Schema para lista de clientes"""

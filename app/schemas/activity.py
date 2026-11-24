@@ -2,23 +2,17 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime, date, time
 
-
-# ===== Base Schemas =====
 class ActivityParticipantBase(BaseModel):
     user_id: int
     role: Optional[str] = None
 
-
 class ActivityCommentBase(BaseModel):
     content: str
-
 
 class ActivityAttachmentBase(BaseModel):
     file_url: str
     file_name: Optional[str] = None
 
-
-# ===== Response Schemas =====
 class UserBasicInfo(BaseModel):
     id: int
     full_name: Optional[str] = None
@@ -27,7 +21,6 @@ class UserBasicInfo(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ActivityParticipantResponse(ActivityParticipantBase):
     id: int
     activity_id: int
@@ -35,7 +28,6 @@ class ActivityParticipantResponse(ActivityParticipantBase):
 
     class Config:
         from_attributes = True
-
 
 class ActivityCommentResponse(ActivityCommentBase):
     id: int
@@ -47,7 +39,6 @@ class ActivityCommentResponse(ActivityCommentBase):
     class Config:
         from_attributes = True
 
-
 class ActivityAttachmentResponse(ActivityAttachmentBase):
     id: int
     activity_id: int
@@ -56,7 +47,6 @@ class ActivityAttachmentResponse(ActivityAttachmentBase):
 
     class Config:
         from_attributes = True
-
 
 class ActivityHistoryResponse(BaseModel):
     id: int
@@ -70,8 +60,6 @@ class ActivityHistoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-# ===== Activity Schemas =====
 class ActivityBase(BaseModel):
     title: str = Field(...)
     description: Optional[str] = None
@@ -106,11 +94,9 @@ class ActivityBase(BaseModel):
             return None
         return v
 
-
 class ActivityCreate(ActivityBase):
     organization_id: int
     participant_ids: List[int] = Field(default_factory=list)
-
 
 class ActivityUpdate(BaseModel):
     title: Optional[str] = None
@@ -124,7 +110,6 @@ class ActivityUpdate(BaseModel):
     location_or_link: Optional[str] = None
     estimated_hours: Optional[int] = None
     observations: Optional[str] = None
-
 
 class ActivityResponse(ActivityBase):
     id: int
@@ -143,19 +128,15 @@ class ActivityResponse(ActivityBase):
     class Config:
         from_attributes = True
 
-
 class ActivityListResponse(BaseModel):
     total: int
     activities: List[ActivityResponse]
-
 
 class ActivityKanbanResponse(BaseModel):
     """Grouped by status/column for Kanban view"""
     status: str
     activities: List[ActivityResponse]
 
-
-# ===== Activity Columns =====
 class ActivityColumnBase(BaseModel):
     name: str
     status: Optional[str] = None  # Status da atividade que essa coluna representa
@@ -163,10 +144,8 @@ class ActivityColumnBase(BaseModel):
     color: Optional[str] = None
     is_default: bool = False
 
-
 class ActivityColumnCreate(ActivityColumnBase):
     organization_id: int
-
 
 class ActivityColumnResponse(ActivityColumnBase):
     id: int
@@ -176,12 +155,8 @@ class ActivityColumnResponse(ActivityColumnBase):
     class Config:
         from_attributes = True
 
-
-# ===== Comments =====
 class CommentCreateRequest(BaseModel):
     content: str
 
-
-# ===== Status Update / Drag-Drop =====
 class ActivityStatusUpdateRequest(BaseModel):
     new_status: str = Field(..., description="todo, in_progress, done")

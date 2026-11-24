@@ -9,14 +9,7 @@ from app.schemas.jurimetria_batch import BatchFiltroRequest, BatchResponse
 from app.services.datajud_autocomplete_service import DataJudAutoCompleteService
 from app.services.datajud_batch_service import DataJudBatchService
 
-
 router = APIRouter()
-# Hot-reloaded with TJSP J=8 support
-
-
-
-# ─────────────────── Auto-Complete de Processos ────────────────────────────
-
 
 @router.get(
     "/autocomplete",
@@ -88,10 +81,6 @@ def autocomplete_processo(
             detail="Erro interno ao consultar DataJud",
         ) from exc
 
-
-# ─────────────────── Coleta em Lote (existente) ────────────────────────────
-
-
 @router.post(
     "/batch/processos",
     response_model=BatchResponse,
@@ -122,5 +111,4 @@ def executar_batch_processos(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao processar coleta em lote do DataJud",
         ) from exc
-
 

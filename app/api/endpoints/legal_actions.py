@@ -10,12 +10,14 @@ from app.schemas.legal_action import (
     LegalActionResponse,
     LegalActionListResponse,
 )
+from app.schemas.monitoramento import MonitoramentoResponse, ProcessoPrazoResponse
 from app.services.legal_action_service import LegalActionService
+from app.services.monitoramento_service import MonitoramentoIndisponivel, MonitoramentoService
+from app.services.plano_service import LimiteDoPlano, PlanoService
 from app.models.user import User
 from app.api.deps import exigir_permissao, get_data_filter_user_id
 
 router = APIRouter()
-
 
 @router.post(
     "",
@@ -39,14 +41,12 @@ def create_legal_action(
     - **legal_status_id**: ID do status jurídico (listar em GET /legal-action-statuses). Se vazio, usa 'pre_trial'.
     - **client_id**: ID do cliente envolvido
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização para criar ações jurídicas. Crie uma organização primeiro."
         )
     
-    # Verificar se número já existe
     if LegalActionService.get_by_number(db, number=action_in.number, organization_id=current_user.organization_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -54,12 +54,15 @@ def create_legal_action(
         )
     
     try:
+        PlanoService.garantir_novo_processo(db, current_user.organization_id)
         action = LegalActionService.create(
             db=db,
             action_in=action_in,
             organization_id=current_user.organization_id,
             user_id=current_user.id,
         )
+    except LimiteDoPlano as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -71,7 +74,6 @@ def create_legal_action(
             detail="Tipo de ação jurídica (action_type_id) inválido ou não encontrado",
         )
     return action
-
 
 @router.get(
     "",
@@ -99,7 +101,6 @@ def list_legal_actions(
     - ADMIN/OWNER: Veem todos os processos
     - MEMBER/VIEWER: Veem apenas seus processos
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -122,7 +123,6 @@ def list_legal_actions(
     
     return LegalActionListResponse(total=total, legal_actions=actions)
 
-
 @router.get(
     "/{action_id}",
     response_model=LegalActionResponse,
@@ -140,7 +140,6 @@ def get_legal_action(
     - ADMIN/OWNER: Pode acessar qualquer processo
     - MEMBER/VIEWER: Pode acessar apenas seus processos
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -157,7 +156,6 @@ def get_legal_action(
     
     return action
 
-
 @router.put(
     "/{action_id}",
     response_model=LegalActionResponse,
@@ -173,7 +171,6 @@ def update_legal_action(
     """
     Atualiza uma ação jurídica existente
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -201,7 +198,6 @@ def update_legal_action(
         )
     return action
 
-
 @router.delete(
     "/{action_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -216,17 +212,133 @@ def delete_legal_action(
     """
     Deleta uma ação jurídica
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você precisa ter uma organização."
         )
     
-    action = LegalActionService.delete(db, action_id=action_id, organization_id=current_user.organization_id, user_id=filter_user_id)
-    
+    action = LegalActionService.get_by_id(
+        db,
+        action_id=action_id,
+        organization_id=current_user.organization_id,
+        user_id=filter_user_id,
+    )
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ação jurídica não encontrada"
+            detail="Ação jurídica não encontrada",
         )
+
+    try:
+        MonitoramentoService.encerrar(db, action)
+    except MonitoramentoIndisponivel as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    LegalActionService.delete(
+        db,
+        action_id=action_id,
+        organization_id=current_user.organization_id,
+        user_id=filter_user_id,
+    )
+
+def _resposta_monitoramento(db, action) -> MonitoramentoResponse:
+    registro = MonitoramentoService.obter(db, action.id, action.organization_id)
+    prazos = MonitoramentoService.listar_prazos(db, action.id, action.organization_id)
+    return MonitoramentoResponse(
+        ativo=bool(registro and registro.ativo),
+        status=registro.status if registro and registro.ativo else None,
+        frequencia=registro.frequencia if registro and registro.ativo else None,
+        limite=MonitoramentoService.limite(db, action.organization_id),
+        em_uso=MonitoramentoService.em_uso(db, action.organization_id),
+        prazos=prazos,
+    )
+
+def _carregar_acao(db, action_id, current_user, filter_user_id):
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização para acessar ações jurídicas.",
+        )
+    action = LegalActionService.get_by_id(
+        db,
+        action_id=action_id,
+        organization_id=current_user.organization_id,
+        user_id=filter_user_id,
+    )
+    if not action:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ação jurídica não encontrada")
+    return action
+
+@router.get(
+    "/{action_id}/monitoramento",
+    response_model=MonitoramentoResponse,
+    summary="Ver acompanhamento e prazos do processo",
+)
+def obter_monitoramento(
+    action_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    action = _carregar_acao(db, action_id, current_user, filter_user_id)
+    return _resposta_monitoramento(db, action)
+
+@router.post(
+    "/{action_id}/monitoramento",
+    response_model=MonitoramentoResponse,
+    summary="Passar a acompanhar movimentações do processo",
+)
+def ativar_monitoramento(
+    action_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    action = _carregar_acao(db, action_id, current_user, filter_user_id)
+    try:
+        MonitoramentoService.ativar(db, action)
+    except MonitoramentoIndisponivel as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return _resposta_monitoramento(db, action)
+
+@router.delete(
+    "/{action_id}/monitoramento",
+    response_model=MonitoramentoResponse,
+    summary="Encerrar o acompanhamento do processo",
+)
+def encerrar_monitoramento(
+    action_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    action = _carregar_acao(db, action_id, current_user, filter_user_id)
+    try:
+        MonitoramentoService.encerrar(db, action)
+    except MonitoramentoIndisponivel as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return _resposta_monitoramento(db, action)
+
+@router.patch(
+    "/{action_id}/prazos/{prazo_id}/cumprir",
+    response_model=ProcessoPrazoResponse,
+    summary="Marcar prazo como cumprido",
+)
+def cumprir_prazo(
+    action_id: int,
+    prazo_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    action = _carregar_acao(db, action_id, current_user, filter_user_id)
+    prazo = MonitoramentoService.cumprir_prazo(
+        db,
+        legal_action_id=action.id,
+        organization_id=action.organization_id,
+        prazo_id=prazo_id,
+    )
+    if not prazo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prazo não encontrado")
+    return prazo

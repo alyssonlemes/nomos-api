@@ -3,7 +3,6 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 class LegalActionUser(Base):
     """Vinculo entre usuarios e processos (many-to-many)."""
 

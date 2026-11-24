@@ -13,8 +13,6 @@ Adiciona campos necessários para análise de processos judiciais:
 - movimento_encerramento: nome do movimento que determinou o encerramento
 - duracao_dias: dias entre ajuizamento e encerramento
 - updated_at: timestamp de atualização
-
-Referência: Master Prompt Seções 2, 3 e 4.
 """
 from typing import Sequence, Union
 

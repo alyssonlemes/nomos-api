@@ -4,8 +4,7 @@ from sqlalchemy import or_
 
 from app.models.client import Client
 from app.schemas.client import ClientCreate, ClientUpdate
-from app.core.listing import apply_listing_sort
-
+from app.core.listing import paginate
 
 class ClientService:
     """Serviço para operações de cliente vinculados à organização"""
@@ -79,8 +78,7 @@ class ClientService:
                 )
             )
         
-        total = query.count()
-        query = apply_listing_sort(
+        return paginate(
             query,
             columns={
                 "name": Client.name,
@@ -94,9 +92,9 @@ class ClientService:
             sort_dir=sort_dir,
             default="created_at",
             tiebreaker=Client.id,
+            skip=skip,
+            limit=limit,
         )
-        clients = query.offset(skip).limit(limit).all()
-        return clients, total
     
     @staticmethod
     def create(db: Session, client_in: ClientCreate, organization_id: int, user_id: int = None) -> Client:

@@ -3,7 +3,6 @@ from typing import Dict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-
 def evaluate_model(model, X_test, y_test) -> Dict[str, float]:
     """
     Avalia o modelo com MAE e RMSE.

@@ -2,7 +2,6 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
-
 class NotificationResponse(BaseModel):
     id: int
     title: str
@@ -12,7 +11,6 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class NotificationListResponse(BaseModel):
     total: int

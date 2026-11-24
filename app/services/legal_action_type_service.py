@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.legal_action_type import LegalActionType
 from app.schemas.legal_action_type import LegalActionTypeCreate, LegalActionTypeUpdate
-from app.core.listing import apply_listing_sort
-
+from app.core.listing import paginate
 
 class LegalActionTypeService:
     """Serviço para CRUD de tipos de ação jurídica."""
@@ -35,8 +34,7 @@ class LegalActionTypeService:
             query = query.filter(
                 LegalActionType.name.ilike(term) | LegalActionType.code.ilike(term)
             )
-        total = query.count()
-        query = apply_listing_sort(
+        return paginate(
             query,
             columns={
                 "name": LegalActionType.name,
@@ -48,9 +46,9 @@ class LegalActionTypeService:
             sort_dir=sort_dir,
             default="id",
             tiebreaker=LegalActionType.id,
+            skip=skip,
+            limit=limit,
         )
-        items = query.offset(skip).limit(limit).all()
-        return items, total
 
     @staticmethod
     def create(db: Session, data_in: LegalActionTypeCreate) -> LegalActionType:

@@ -11,6 +11,17 @@ from app.models.legal_action_status import LegalActionStatus
 from app.models.jurimetria_dataset import JurimetriaDataset
 from app.models.processo_parte import ProcessoParte
 from app.models.processo_movimento import ProcessoMovimento
+from app.models.processo_monitoramento import ProcessoMonitoramento
+from app.models.processo_prazo import ProcessoPrazo
+from app.models.escavador_callback import EscavadorCallback
+from app.models.activity import (
+    Activity,
+    ActivityAttachment,
+    ActivityColumn,
+    ActivityComment,
+    ActivityHistory,
+    ActivityParticipant,
+)
 
 __all__ = [
     "User",
@@ -26,4 +37,13 @@ __all__ = [
     "JurimetriaDataset",
     "ProcessoParte",
     "ProcessoMovimento",
+    "ProcessoMonitoramento",
+    "ProcessoPrazo",
+    "EscavadorCallback",
+    "Activity",
+    "ActivityAttachment",
+    "ActivityColumn",
+    "ActivityComment",
+    "ActivityHistory",
+    "ActivityParticipant",
 ]

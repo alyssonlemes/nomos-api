@@ -11,7 +11,6 @@ from app.services.access_profile_service import AccessProfileService
 
 router = APIRouter()
 
-
 def _resposta(perfil: AccessProfile) -> AccessProfileResponse:
     return AccessProfileResponse(
         id=perfil.id,
@@ -22,7 +21,6 @@ def _resposta(perfil: AccessProfile) -> AccessProfileResponse:
         permissions=montar_permissoes_do_perfil(perfil.name, perfil.permissions),
     )
 
-
 def _pode_listar(usuario: User) -> bool:
     if eh_administrador(usuario) or usuario.is_superuser:
         return True
@@ -30,7 +28,6 @@ def _pode_listar(usuario: User) -> bool:
         tem_permissao_usuario(usuario, "usuarios", acao)
         for acao in ("visualizar", "criar", "editar")
     )
-
 
 @router.get("", response_model=AccessProfileListResponse, summary="Listar perfis da organização")
 def list_access_profiles(
@@ -43,7 +40,6 @@ def list_access_profiles(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você não tem permissão para ver os perfis.")
     perfis = AccessProfileService.listar(db, current_user.organization_id)
     return AccessProfileListResponse(profiles=[_resposta(perfil) for perfil in perfis])
-
 
 @router.put("/{profile_id}", response_model=AccessProfileResponse, summary="Atualizar permissões do perfil")
 def update_access_profile(

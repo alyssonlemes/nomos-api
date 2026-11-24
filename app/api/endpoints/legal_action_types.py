@@ -16,7 +16,6 @@ from app.api.deps import exigir_permissao
 
 router = APIRouter()
 
-
 @router.post(
     "",
     response_model=LegalActionTypeResponse,
@@ -38,7 +37,6 @@ def create_legal_action_type(
     obj = LegalActionTypeService.create(db, data_in)
     return obj
 
-
 @router.get(
     "",
     response_model=LegalActionTypeListResponse,
@@ -59,7 +57,6 @@ def list_legal_action_types(
     )
     return LegalActionTypeListResponse(total=total, legal_action_types=items)
 
-
 @router.get(
     "/{type_id}",
     response_model=LegalActionTypeResponse,
@@ -78,7 +75,6 @@ def get_legal_action_type(
             detail="Tipo de ação jurídica não encontrado",
         )
     return obj
-
 
 @router.put(
     "/{type_id}",
@@ -106,7 +102,6 @@ def update_legal_action_type(
             detail="Tipo de ação jurídica não encontrado",
         )
     return obj
-
 
 @router.delete(
     "/{type_id}",

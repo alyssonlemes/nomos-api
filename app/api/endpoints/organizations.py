@@ -6,12 +6,12 @@ from app.database import get_db
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse
 from app.schemas.user import UserResponse
 from app.services.organization_service import OrganizationService
+from app.services.plano_service import PlanoService
 from app.services.user_service import UserService
 from app.models.user import User
 from app.api.deps import get_current_active_user, exigir_permissao
 
 router = APIRouter()
-
 
 @router.post(
     "",
@@ -36,14 +36,12 @@ def create_organization(
     3. Criar organização AQUI (POST /api/v1/organizations)
     4. Convidar usuários ou acessar outras telas
     """
-    # Validar se usuário já tem organização
     if current_user.organization_id is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Você já possui uma organização. Não é possível criar outra."
         )
     
-    # Verificar se documento já existe
     if org_in.document:
         existing_org = OrganizationService.get_by_document(db, document=org_in.document)
         if existing_org:
@@ -52,16 +50,14 @@ def create_organization(
                 detail="Organização com este documento já cadastrada"
             )
     
-    # Criar organização
     organization = OrganizationService.create(db=db, org_in=org_in, owner_id=current_user.id)
     
-    # Vincular usuário à organização automaticamente
     current_user.organization_id = organization.id
     db.commit()
     db.refresh(current_user)
+    db.refresh(organization)
     
-    return organization
-
+    return PlanoService.montar_resposta(db, organization)
 
 @router.get(
     "",
@@ -89,8 +85,7 @@ def get_my_organization(
             detail="Organização não encontrada"
         )
     
-    return organization
-
+    return PlanoService.montar_resposta(db, organization)
 
 @router.put(
     "",
@@ -111,7 +106,6 @@ def update_organization(
             detail="Você não possui uma organização"
         )
     
-    # Verificar se documento já existe (se foi fornecido)
     if org_in.document:
         existing_org = OrganizationService.get_by_document(db, document=org_in.document)
         if existing_org and existing_org.id != current_user.organization_id:
@@ -132,8 +126,7 @@ def update_organization(
             detail="Organização não encontrada"
         )
     
-    return organization
-
+    return PlanoService.montar_resposta(db, organization)
 
 @router.get(
     "/users",

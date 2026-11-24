@@ -57,8 +57,6 @@ from app.services.tpu_mapping import (
 
 logger = logging.getLogger(__name__)
 
-# ──────────────────────────── Constantes ──────────────────────────────────
-
 REQUEST_TIMEOUT_SECONDS = 30
 FUZZY_MATCH_THRESHOLD = 0.80    # Score mínimo para fuzzy matching (0–1)
 MAX_MOVIMENTOS_PERSISTIR = 50   # Máximo de movimentos a persistir por processo
@@ -118,17 +116,11 @@ for _tt, _alias in _SIGLAS_TJM.items():
 
 DATAJUD_BASE = "https://api-publica.datajud.cnj.jus.br"
 
-
-# ──────────────────────────── Service ─────────────────────────────────────
-
-
 class DataJudAutoCompleteService:
     """
     Serviço de auto-complete de processos judiciais via DataJud.
     Todos os métodos são estáticos (padrão do projeto).
     """
-
-    # ─── 1. Resolução de tribunal ──────────────────────────────────────────
 
     @staticmethod
     def resolve_tribunal_endpoint(numero_cnj: str) -> Tuple[str, str]:
@@ -178,8 +170,6 @@ class DataJudAutoCompleteService:
             numero_cnj, alias, url,
         )
         return url, alias
-
-    # ─── 2. Consulta principal ─────────────────────────────────────────────
 
     @staticmethod
     def buscar_por_numero(
@@ -245,7 +235,6 @@ class DataJudAutoCompleteService:
 
         source = hits[0].get("_source", {}) or {}
 
-        # Verificar segredo de justiça
         if source.get("sigiloso") or source.get("segredoJustica"):
             logger.info("Processo sob segredo de justiça: %s", numero_cnj)
             return ProcessoAutoCompleteResponse(
@@ -256,7 +245,6 @@ class DataJudAutoCompleteService:
         # Mapear dados do DataJud
         dados = DataJudAutoCompleteService._mapear_processo(source, alias)
 
-        # Verificar se processo já existe localmente
         existing = LegalActionService.get_by_number(
             db, number=numero_cnj, organization_id=organization_id
         )
@@ -286,8 +274,6 @@ class DataJudAutoCompleteService:
             partes_encontradas=partes_encontradas,
             partes_nao_encontradas=partes_nao_encontradas,
         )
-
-    # ─── 3. Upsert do processo ─────────────────────────────────────────────
 
     @staticmethod
     def salvar_ou_atualizar(
@@ -381,7 +367,6 @@ class DataJudAutoCompleteService:
 
         # Partes não encontradas → sem client_id
         for parte in partes_nao_encontradas:
-            # Verificar se foi confirmada/criada pelo usuário
             client_id_criado = None
             for conf in confirmadas:
                 if conf.get("nome") == parte.nome or (
@@ -433,8 +418,6 @@ class DataJudAutoCompleteService:
         db.refresh(legal_action)
         return legal_action
 
-    # ─── 4. Helpers de query ───────────────────────────────────────────────
-
     @staticmethod
     def _build_numero_query(numero_cnj: str) -> Dict[str, Any]:
         """
@@ -463,8 +446,6 @@ class DataJudAutoCompleteService:
             },
             "_source": True,
         }
-
-    # ─── 5. Mapeamento do JSON DataJud → DTO ──────────────────────────────
 
     @staticmethod
     def _mapear_processo(source: Dict[str, Any], alias: str) -> ProcessoDadosDataJud:
@@ -595,8 +576,6 @@ class DataJudAutoCompleteService:
             area_juridica=area_juridica,
         )
 
-    # ─── 6. Extração de partes raw do DataJud ─────────────────────────────
-
     @staticmethod
     def _extrair_partes_raw(source: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -675,8 +654,6 @@ class DataJudAutoCompleteService:
 
         return partes
 
-    # ─── 7. Resolução de partes ────────────────────────────────────────────
-
     @staticmethod
     def _resolver_partes(
         partes_raw: List[Dict[str, Any]],
@@ -702,7 +679,6 @@ class DataJudAutoCompleteService:
         encontradas: List[ParteEncontrada] = []
         nao_encontradas: List[ParteSugestao] = []
 
-        # Buscar clientes da organização apenas uma vez fora do loop
         clientes = (
             db.query(Client)
             .filter(Client.organization_id == organization_id)
@@ -803,8 +779,6 @@ class DataJudAutoCompleteService:
             return best_client, round(best_score, 3)
 
         return None, None
-
-    # ─── 8. Utilitários ───────────────────────────────────────────────────
 
     @staticmethod
     def _normalizar_documento(doc: Optional[Any]) -> Optional[str]:

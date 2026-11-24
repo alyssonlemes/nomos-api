@@ -1,21 +1,14 @@
-"""
-Mapeamento da Tabela Processual Unificada (TPU) do CNJ.
+"""Mapeamento da Tabela Processual Unificada (TPU) do CNJ.
 
-Conforme Seção 2 do Master Prompt:
-- Classes: https://www.cnj.jus.br/sgt/consulta_publica_classes.php
-- Assuntos: https://www.cnj.jus.br/sgt/consulta_publica_assuntos.php
+Traduz a área jurídica para códigos de classe e assunto e lista os
+movimentos que indicam encerramento, para inferir a data de fim no DataJud.
 
-Este módulo traduz termos de área jurídica (ex: "Criminal") para os
-códigos TPU correspondentes, permitindo filtragem precisa na API DataJud.
-
-Também contém os termos de encerramento (Seção 3.2 do MD) para inferir
-a data de fim dos processos a partir do array de movimentos.
+Classes: https://www.cnj.jus.br/sgt/consulta_publica_classes.php
+Assuntos: https://www.cnj.jus.br/sgt/consulta_publica_assuntos.php
 """
 
 from typing import Dict, List, Optional, Set
 
-
-# ─────────────────────── Classificação por Área Jurídica ──────────────────────
 # Mapeamento: área → lista de códigos de classe processual (TPU)
 # Fonte: Tabela Processual Unificada do CNJ
 
@@ -137,7 +130,6 @@ AREAS_CLASSES: Dict[str, List[str]] = {
     ],
 }
 
-# ─────────────── Mapeamento por Assuntos (TPU - Ramos do Direito) ─────────────
 # Códigos de nível superior dos ramos do Direito conforme TPU
 
 AREAS_ASSUNTOS: Dict[str, List[str]] = {
@@ -220,7 +212,6 @@ AREAS_ASSUNTOS: Dict[str, List[str]] = {
     ],
 }
 
-# ──────────────────── Termos de Encerramento (Seção 3.2 do MD) ────────────────
 # Termos que indicam encerramento definitivo de um processo.
 # Usados para busca no array `movimentos` da API DataJud.
 
@@ -259,10 +250,7 @@ CODIGOS_ENCERRAMENTO: Set[str] = {
     "10964", # Baixa na Distribuição
 }
 
-# ─────────────── Termos normalizados para busca case-insensitive ──────────────
-
 TERMOS_ENCERRAMENTO_LOWER: List[str] = [t.lower() for t in TERMOS_ENCERRAMENTO]
-
 
 def classificar_area_juridica(
     classe_codigo: Optional[str] = None,
@@ -300,7 +288,6 @@ def classificar_area_juridica(
 
     return None
 
-
 def obter_codigos_por_area(area: str) -> Dict[str, List[str]]:
     """
     Retorna os códigos de classe e assunto para uma área jurídica.
@@ -315,7 +302,6 @@ def obter_codigos_por_area(area: str) -> Dict[str, List[str]]:
         "classes": AREAS_CLASSES.get(area, []),
         "assuntos": AREAS_ASSUNTOS.get(area, []),
     }
-
 
 def listar_areas_disponiveis() -> List[Dict[str, object]]:
     """
@@ -337,7 +323,6 @@ def listar_areas_disponiveis() -> List[Dict[str, object]]:
         })
 
     return areas
-
 
 def identificar_movimento_encerramento(
     movimentos: List[Dict],
@@ -394,7 +379,6 @@ def identificar_movimento_encerramento(
                 }
 
     return encerramento_encontrado
-
 
 def extrair_movimentos_principais(
     movimentos: List[Dict],

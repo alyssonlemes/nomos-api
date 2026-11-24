@@ -7,13 +7,13 @@ from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserRoleUpdat
 from app.schemas.organization import OrganizationCreate
 from app.services.user_service import UserService
 from app.services.organization_service import OrganizationService
+from app.services.plano_service import LimiteDoPlano, PlanoService
 from app.services.access_profile_service import AcessoNegado, AccessProfileService, PerfilInvalido
 from app.models.user import User
 from app.api.deps import get_current_active_user, exigir_permissao
 from app.core.perfis import eh_administrador, isola_dados_usuario, tem_permissao_usuario
 
 router = APIRouter()
-
 
 @router.post(
     "/register",
@@ -38,14 +38,12 @@ def register(
     - **full_name**: Nome completo (opcional)
     - **organization_id**: ID da organização (opcional - pode criar depois)
     """
-    # Verificar se email já existe
     if UserService.get_by_email(db, email=user_in.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email já registrado"
         )
     
-    # Se organization_id foi fornecido, validar se existe
     if user_in.organization_id:
         organization = OrganizationService.get_by_id(db, organization_id=user_in.organization_id)
         if not organization:
@@ -53,10 +51,13 @@ def register(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Organização não encontrada"
             )
+        try:
+            PlanoService.garantir_novo_usuario(db, organization.id)
+        except LimiteDoPlano as exc:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     
     user = UserService.create(db=db, user_in=user_in)
     return user
-
 
 @router.get("/me", response_model=UserResponse, summary="Obter usuário atual")
 def get_me(
@@ -66,7 +67,6 @@ def get_me(
     Retorna as informações do usuário autenticado
     """
     return current_user
-
 
 @router.get("", response_model=UserListResponse, summary="Listar usuários")
 def list_users(
@@ -105,7 +105,6 @@ def list_users(
     )
     return UserListResponse(total=total, users=users, skip=skip, limit=limit)
 
-
 @router.get("/{user_id}", response_model=UserResponse, summary="Buscar usuário por ID")
 def get_user(
     user_id: int,
@@ -119,7 +118,6 @@ def get_user(
     
     - **user_id**: ID do usuário
     """
-    # Verificar se usuário tem organização
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -144,7 +142,6 @@ def get_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
 
     return user
-
 
 @router.put("/{user_id}", response_model=UserResponse, summary="Atualizar usuário")
 def update_user(
@@ -188,7 +185,6 @@ def update_user(
                 detail="Não é possível inativar o último administrador da organização.",
             )
     
-    # Verificar se email já existe (se foi fornecido)
     if user_in.email:
         existing_user = UserService.get_by_email(db, email=user_in.email)
         if existing_user and existing_user.id != user_id:
@@ -207,7 +203,6 @@ def update_user(
         )
     
     return user
-
 
 @router.patch(
     "/{user_id}/role",
@@ -252,7 +247,6 @@ def update_user_role(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except PerfilInvalido as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-
 
 @router.post(
     "/{user_id}/unlink-organization",
@@ -315,7 +309,6 @@ def unlink_organization(
 
     return user
 
-
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -334,14 +327,12 @@ def delete_user(
     
     - **user_id**: ID do usuário
     """
-    # Verificar se é o próprio usuário
     if current_user.id != user_id and not UserService.is_superuser(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode deletar seu próprio perfil"
         )
     
-    # Para delete do próprio usuário, organization_id pode ser None
     user = UserService.delete(db, user_id=user_id, organization_id=current_user.organization_id or 0)
     
     if not user:

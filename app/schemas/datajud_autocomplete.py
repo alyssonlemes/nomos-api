@@ -14,10 +14,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-# ─────────────────────────────── Request ───────────────────────────────────
-
-
 class DataJudAutoCompleteRequest(BaseModel):
     """Requisição de auto-complete por número CNJ."""
     numero_cnj: str = Field(
@@ -25,10 +21,6 @@ class DataJudAutoCompleteRequest(BaseModel):
         min_length=20,
         description="Número CNJ no formato NNNNNNN-DD.AAAA.J.TT.OOOO",
     )
-
-
-# ────────────────────────────── Partes ─────────────────────────────────────
-
 
 class ParteEncontrada(BaseModel):
     """
@@ -47,7 +39,6 @@ class ParteEncontrada(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class ParteSugestao(BaseModel):
     """
     Parte do processo que NÃO foi encontrada na base de clientes.
@@ -63,15 +54,10 @@ class ParteSugestao(BaseModel):
     client_type: Optional[str] = None       # 'individual' | 'business' (inferido pelo tamanho do doc)
     model_config = ConfigDict(from_attributes=True)
 
-
-# ─────────────────────── Dados extraídos do DataJud ────────────────────────
-
-
 class AssuntoDataJud(BaseModel):
     """Assunto processual conforme TPU."""
     codigo: Optional[str] = None
     nome: Optional[str] = None
-
 
 class MovimentoDataJud(BaseModel):
     """Movimentação do processo conforme TPU."""
@@ -79,7 +65,6 @@ class MovimentoDataJud(BaseModel):
     nome: str
     data_hora: Optional[str] = None
     complemento: Optional[Dict[str, Any]] = None
-
 
 class ProcessoDadosDataJud(BaseModel):
     """
@@ -123,10 +108,6 @@ class ProcessoDadosDataJud(BaseModel):
     area_juridica: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
-
-
-# ─────────────────────────────── Response ──────────────────────────────────
-
 
 class ProcessoAutoCompleteResponse(BaseModel):
     """

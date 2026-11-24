@@ -16,7 +16,6 @@ from app.database import SessionLocal
 
 router = APIRouter()
 
-
 def get_user_from_token(db: Session, token: str) -> User | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -27,7 +26,6 @@ def get_user_from_token(db: Session, token: str) -> User | None:
         return None
 
     return UserService.get_by_email(db, email=email)
-
 
 @router.get("", response_model=NotificationListResponse, summary="Listar notificacoes")
 def list_notifications(
@@ -45,7 +43,6 @@ def list_notifications(
         limit=limit,
     )
     return NotificationListResponse(total=total, notifications=notifications)
-
 
 @router.patch(
     "/{notification_id}/read",
@@ -70,7 +67,6 @@ def mark_notification_as_read(
             detail="Notificacao nao encontrada",
         )
     return notification
-
 
 @router.websocket("/ws")
 async def notifications_ws(websocket: WebSocket):

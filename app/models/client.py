@@ -5,12 +5,10 @@ import enum
 
 from app.database import Base
 
-
 class ClientType(str, enum.Enum):
     """Tipo de cliente"""
     INDIVIDUAL = "individual"  # Pessoa física
     BUSINESS = "business"      # Pessoa jurídica
-
 
 class ClientStatus(str, enum.Enum):
     """Status do cliente"""
@@ -18,7 +16,6 @@ class ClientStatus(str, enum.Enum):
     INACTIVE = "inactive"
     PROSPECT = "prospect"
     ARCHIVED = "archived"
-
 
 class Client(Base):
     """Modelo de Cliente vinculado a uma Organização"""

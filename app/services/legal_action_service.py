@@ -15,7 +15,6 @@ from app.services.notification_service import NotificationService
 from app.services.tpu_mapping import identificar_movimento_encerramento
 from app.core.listing import apply_listing_sort
 
-
 class LegalActionService:
     """
     Serviço para operações de ações jurídicas

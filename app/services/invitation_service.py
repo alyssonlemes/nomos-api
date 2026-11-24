@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.invitation import InvitationCreate
 
-
 class InvitationService:
     """Service para operações com convites"""
     

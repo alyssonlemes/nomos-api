@@ -24,7 +24,6 @@ from app.services.tpu_mapping import listar_areas_disponiveis
 
 router = APIRouter()
 
-
 @router.post(
     "/coletar-analisar",
     response_model=AnaliseProcessosResponse,
@@ -78,7 +77,6 @@ def coletar_e_analisar_processos(
             detail="Erro interno ao processar análise de processos",
         ) from exc
 
-
 @router.post(
     "/estatisticas",
     response_model=AnaliseEstatisticasResponse,
@@ -118,7 +116,6 @@ def obter_estatisticas_processos(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno ao calcular estatísticas",
         ) from exc
-
 
 @router.get(
     "/areas-juridicas",

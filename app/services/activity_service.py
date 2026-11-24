@@ -15,7 +15,6 @@ from app.models.activity import (
 from app.models.user import User
 from app.schemas.activity import ActivityCreate, ActivityUpdate, ActivityStatusUpdateRequest, ActivityColumnCreate
 
-
 class ActivityService:
     @staticmethod
     def get_by_id(db: Session, activity_id: int, organization_id: int) -> Optional[Activity]:
@@ -316,7 +315,6 @@ class ActivityService:
             .filter(ActivityComment.activity_id == activity_id)
             .all()
         )
-
 
 class ActivityColumnService:
     @staticmethod

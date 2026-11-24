@@ -6,7 +6,7 @@ from app.models.user import User
 from app.models.access_profile import AccessProfile
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.core.perfis import NOME_ADMINISTRADOR, PERFIS_PADRAO, papel_legado
-
+from app.domain.planos import PLANO_PADRAO
 
 class OrganizationService:
     """Serviço para operações de organização"""
@@ -39,13 +39,13 @@ class OrganizationService:
         Returns:
             Organização criada
         """
-        # Criar organização
         db_org = Organization(
             name=org_in.name,
             document=org_in.document,
             legal_representative_name=org_in.legal_representative_name,
             legal_representative_document=org_in.legal_representative_document,
             owner_id=owner_id,
+            plano=PLANO_PADRAO,
             is_active=True
         )
         db.add(db_org)

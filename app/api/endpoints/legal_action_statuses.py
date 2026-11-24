@@ -17,7 +17,6 @@ from app.api.deps import exigir_permissao
 
 router = APIRouter()
 
-
 @router.post(
     "",
     response_model=LegalActionStatusResponse,
@@ -55,7 +54,6 @@ def create_legal_action_status(
             ),
         )
 
-
 @router.get(
     "",
     response_model=LegalActionStatusListResponse,
@@ -75,7 +73,6 @@ def list_legal_action_statuses(
     )
     return LegalActionStatusListResponse(total=total, legal_action_statuses=items)
 
-
 @router.get(
     "/{status_id}",
     response_model=LegalActionStatusResponse,
@@ -93,7 +90,6 @@ def get_legal_action_status(
             detail="Status jurídico de ação não encontrado",
         )
     return obj
-
 
 @router.put(
     "/{status_id}",
@@ -113,7 +109,6 @@ def update_legal_action_status(
             detail="Status jurídico de ação não encontrado ou código já utilizado",
         )
     return obj
-
 
 @router.delete(
     "/{status_id}",

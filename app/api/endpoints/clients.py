@@ -10,7 +10,6 @@ from app.api.deps import get_user_organization, exigir_permissao, get_data_filte
 
 router = APIRouter()
 
-
 @router.post(
     "",
     response_model=ClientResponse,
@@ -33,7 +32,6 @@ def create_client(
         )
     
     return ClientService.create(db=db, client_in=client_in, organization_id=organization_id, user_id=current_user.id)
-
 
 @router.get(
     "",
@@ -71,8 +69,6 @@ def list_clients(
     )
     return ClientListResponse(total=total, clients=clients)
 
-
-
 @router.get(
     "/{client_id}",
     response_model=ClientResponse,
@@ -100,7 +96,6 @@ def get_client(
         )
     
     return client
-
 
 @router.put(
     "/{client_id}",
@@ -145,7 +140,6 @@ def update_client(
         )
     
     return client
-
 
 @router.delete(
     "/{client_id}",

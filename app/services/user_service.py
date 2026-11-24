@@ -8,8 +8,7 @@ from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.user import UserCreate, UserUpdate, UserRoleUpdate
 from app.core.perfis import NOME_POR_PAPEL
 from app.core.security import get_password_hash, verify_password
-from app.core.listing import apply_listing_sort
-
+from app.core.listing import paginate
 
 class UserService:
     """
@@ -70,8 +69,7 @@ class UserService:
         if only_user_id is not None:
             query = query.filter(User.id == only_user_id)
 
-        total = query.count()
-        query = apply_listing_sort(
+        return paginate(
             query,
             columns={
                 "full_name": User.full_name,
@@ -86,9 +84,9 @@ class UserService:
             sort_dir=sort_dir,
             default="created_at",
             tiebreaker=User.id,
+            skip=skip,
+            limit=limit,
         )
-        users = query.offset(skip).limit(limit).all()
-        return users, total
     
     @staticmethod
     def create(db: Session, user_in: UserCreate) -> User:
@@ -141,7 +139,6 @@ class UserService:
         
         update_data = user_in.model_dump(exclude_unset=True)
         
-        # Se a senha foi fornecida, fazer hash
         if "password" in update_data:
             update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
         
@@ -194,7 +191,6 @@ class UserService:
         if not db_user:
             return None
 
-        # Determinar qual organização precisamos limpar (pode ser passada ou a atual do usuário)
         org_to_clean = organization_id if organization_id is not None else db_user.organization_id
 
         # Limpar convites pendentes/aceitos para este email na organização para evitar duplicidades

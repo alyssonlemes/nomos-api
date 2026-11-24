@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
-
 class OrganizationBase(BaseModel):
     """Schema base para Organization"""
     name: str = Field(..., min_length=3, max_length=200)
@@ -10,11 +9,9 @@ class OrganizationBase(BaseModel):
     legal_representative_name: Optional[str] = Field(None, max_length=200)
     legal_representative_document: Optional[str] = Field(None, max_length=20)
 
-
 class OrganizationCreate(OrganizationBase):
     """Schema para criação de organização"""
     pass
-
 
 class OrganizationUpdate(BaseModel):
     """Schema para atualização de organização"""
@@ -24,12 +21,17 @@ class OrganizationUpdate(BaseModel):
     legal_representative_document: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
 
-
 class OrganizationResponse(OrganizationBase):
     """Schema de resposta para Organization"""
     id: int
     owner_id: int
     is_active: bool
+    plano: str = "essencial"
+    plano_nome: str = "Essencial"
+    limite_usuarios: int = 3
+    limite_processos: int = 50
+    usuarios_em_uso: int = 0
+    processos_em_uso: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
 

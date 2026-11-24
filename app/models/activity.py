@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 
 from app.database import Base
 
-
 # Association table: activity_participants (many-to-many)
 activity_participants = Table(
     "activity_participants",
@@ -15,7 +14,6 @@ activity_participants = Table(
     Column("role", String(32), nullable=True),
     UniqueConstraint("activity_id", "user_id", name="uq_activity_participants"),
 )
-
 
 class Activity(Base):
     """
@@ -54,7 +52,6 @@ class Activity(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
     organization = relationship("Organization", foreign_keys=[organization_id])
     responsible = relationship("User", foreign_keys=[responsible_id], backref="activities_responsible")
     created_by = relationship("User", foreign_keys=[created_by_id])
@@ -75,7 +72,6 @@ class Activity(Base):
     def __repr__(self):
         return f"<Activity(id={self.id}, title='{self.title}', type='{self.type}', status='{self.status}')>"
 
-
 class ActivityComment(Base):
     """Comentários em atividades"""
     __tablename__ = "activity_comments"
@@ -89,13 +85,11 @@ class ActivityComment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
     activity = relationship("Activity", back_populates="comments")
     author = relationship("User", foreign_keys=[author_id])
     
     def __repr__(self):
         return f"<ActivityComment(id={self.id}, activity_id={self.activity_id})>"
-
 
 class ActivityHistory(Base):
     """Histórico de movimentações/alterações"""
@@ -111,13 +105,11 @@ class ActivityHistory(Base):
     
     changed_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     activity = relationship("Activity", back_populates="history")
     changed_by = relationship("User", foreign_keys=[changed_by_id])
     
     def __repr__(self):
         return f"<ActivityHistory(id={self.id}, field='{self.field_changed}')>"
-
 
 class ActivityAttachment(Base):
     """Arquivos/anexos de atividades"""
@@ -132,13 +124,11 @@ class ActivityAttachment(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     activity = relationship("Activity", back_populates="attachments")
     uploaded_by = relationship("User", foreign_keys=[uploaded_by_id])
     
     def __repr__(self):
         return f"<ActivityAttachment(id={self.id}, file_name='{self.file_name}')>"
-
 
 class ActivityColumn(Base):
     """Colunas customizáveis do Kanban (permite organizar por status ou custom)"""
@@ -155,17 +145,14 @@ class ActivityColumn(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     organization = relationship("Organization", foreign_keys=[organization_id])
     
     def __repr__(self):
         return f"<ActivityColumn(id={self.id}, name='{self.name}')>"
 
-
 # ORM wrapper for activity_participants table
 class ActivityParticipant(Base):
     __table__ = activity_participants
     
-    # Relationships
     activity = relationship("Activity", foreign_keys=[activity_participants.c.activity_id], overlaps="activities_participating,participants")
     user = relationship("User", foreign_keys=[activity_participants.c.user_id], overlaps="activities_participating,participants")

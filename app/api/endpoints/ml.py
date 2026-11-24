@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
 @router.post(
     "/train",
     status_code=status.HTTP_200_OK,

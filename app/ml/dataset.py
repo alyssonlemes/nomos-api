@@ -5,7 +5,6 @@ from sqlalchemy import create_engine, text
 
 from app.core.config import settings
 
-
 COLUMNS: List[str] = [
     "tribunal",
     "numero_processo",
@@ -19,7 +18,6 @@ COLUMNS_EXTENDED: List[str] = COLUMNS + [
     "data_fim",
     "status_processo",
 ]
-
 
 def load_jurimetria_dataset(
     area_juridica: Optional[str] = None,

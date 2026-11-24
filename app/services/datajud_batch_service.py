@@ -11,7 +11,6 @@ from app.core.config import settings
 from app.models.jurimetria_dataset import JurimetriaDataset
 from app.schemas.jurimetria_batch import BatchFiltroRequest, BatchResponse, ProcessoBatchResult
 
-
 class DataJudBatchService:
     """
     Serviço para coleta em lote via DataJud (CNJ) com persistência e normalização
@@ -69,10 +68,6 @@ class DataJudBatchService:
                 break
 
             time.sleep(DataJudBatchService.RATE_LIMIT_SECONDS)
-
-        # Ponto de extensão futura: feature engineering para construção de variáveis
-        # Ponto de extensão futura: treinamento e validação de modelos
-        # Ponto de extensão futura: versionamento e tracking de modelos
 
         return BatchResponse(
             total_processos=total_processos,
