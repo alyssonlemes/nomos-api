@@ -69,13 +69,13 @@ class MonitoramentoService:
         skip: int,
         limit: int,
         search: Optional[str] = None,
+        legal_action_id: Optional[int] = None,
     ) -> tuple[list[tuple[ProcessoMovimento, LegalAction, Optional[ProcessoPrazo]]], int, int]:
-        pendentes = (
-            _consulta_publicacoes(db, organization_id, user_id)
-            .filter(ProcessoMovimento.tratado_em.is_(None))
-            .count()
-        )
-        consulta = _consulta_publicacoes(db, organization_id, user_id)
+        base = _consulta_publicacoes(db, organization_id, user_id)
+        if legal_action_id is not None:
+            base = base.filter(ProcessoMovimento.legal_action_id == legal_action_id)
+        pendentes = base.filter(ProcessoMovimento.tratado_em.is_(None)).count()
+        consulta = base
         if situacao == "pendente":
             consulta = consulta.filter(ProcessoMovimento.tratado_em.is_(None))
         elif situacao == "tratada":

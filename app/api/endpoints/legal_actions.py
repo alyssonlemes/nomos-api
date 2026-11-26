@@ -138,6 +138,7 @@ def listar_publicacoes(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     search: Optional[str] = Query(None),
+    legal_action_id: Optional[int] = Query(None, ge=1),
     db: Session = Depends(get_db),
     current_user: User = Depends(exigir_permissao("processos", "visualizar")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
@@ -155,6 +156,7 @@ def listar_publicacoes(
         skip=skip,
         limit=limit,
         search=search,
+        legal_action_id=legal_action_id,
     )
     return PublicacaoListResponse(
         total=total,
