@@ -32,11 +32,13 @@ class Settings(BaseSettings):
     # DataJud
     DATAJUD_API_KEY: Optional[str] = None
 
-    # Escavador Business API v2 — monitoramento com callback
-    # Token de acesso (painel da API) e token de segurança do callback.
-    ESCAVADOR_API_TOKEN: Optional[str] = None
-    ESCAVADOR_CALLBACK_TOKEN: Optional[str] = None
-    ESCAVADOR_API_BASE: str = "https://api.escavador.com/api/v2"
+    # Juri+ — acompanhamento de processo com aviso
+    # Chave de API do painel e um segredo nosso, enviado na URL do callback.
+    JURIMAI_API_TOKEN: Optional[str] = None
+    JURIMAI_CALLBACK_TOKEN: Optional[str] = None
+    JURIMAI_API_BASE: str = "https://jurimais.com.br/api"
+    # URL pública desta API, sem barra no final. A Juri+ só aceita HTTPS.
+    API_PUBLIC_URL: Optional[str] = None
 
     # Frontend publicado (ex: https://nomos-web.onrender.com)
     FRONTEND_URL: Optional[str] = None

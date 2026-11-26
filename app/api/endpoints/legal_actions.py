@@ -10,7 +10,12 @@ from app.schemas.legal_action import (
     LegalActionResponse,
     LegalActionListResponse,
 )
-from app.schemas.monitoramento import MonitoramentoResponse, ProcessoPrazoResponse
+from app.schemas.monitoramento import (
+    MonitoramentoResponse,
+    ProcessoPrazoResponse,
+    PublicacaoItem,
+    PublicacaoListResponse,
+)
 from app.services.legal_action_service import LegalActionService
 from app.services.monitoramento_service import MonitoramentoIndisponivel, MonitoramentoService
 from app.services.plano_service import LimiteDoPlano, PlanoService
@@ -122,6 +127,79 @@ def list_legal_actions(
     )
     
     return LegalActionListResponse(total=total, legal_actions=actions)
+
+@router.get(
+    "/publicacoes",
+    response_model=PublicacaoListResponse,
+    summary="Listar atualizações recebidas do acompanhamento",
+)
+def listar_publicacoes(
+    situacao: str = Query("pendente", pattern="^(pendente|tratada|todas)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "visualizar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização para acessar ações jurídicas.",
+        )
+    itens, total, pendentes = MonitoramentoService.listar_publicacoes(
+        db,
+        current_user.organization_id,
+        user_id=filter_user_id,
+        situacao=situacao,
+        skip=skip,
+        limit=limit,
+    )
+    return PublicacaoListResponse(
+        total=total,
+        pendentes=pendentes,
+        publicacoes=[_item_publicacao(movimento, acao, prazo) for movimento, acao, prazo in itens],
+    )
+
+@router.patch(
+    "/publicacoes/{movimento_id}/tratar",
+    response_model=PublicacaoItem,
+    summary="Marcar atualização como tratada",
+)
+def tratar_publicacao(
+    movimento_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(exigir_permissao("processos", "editar")),
+    filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
+):
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você precisa ter uma organização para acessar ações jurídicas.",
+        )
+    registro = MonitoramentoService.tratar_publicacao(
+        db,
+        movimento_id=movimento_id,
+        organization_id=current_user.organization_id,
+        user_id=filter_user_id,
+    )
+    if not registro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
+    movimento, acao, prazo = registro
+    return _item_publicacao(movimento, acao, prazo)
+
+def _item_publicacao(movimento, acao, prazo) -> PublicacaoItem:
+    return PublicacaoItem(
+        id=movimento.id,
+        legal_action_id=acao.id,
+        numero=acao.number,
+        titulo=acao.title,
+        conteudo=movimento.nome,
+        data_movimentacao=movimento.data_hora,
+        tratado_em=movimento.tratado_em,
+        prazo_status=prazo.status if prazo else None,
+        prazo_vencimento=prazo.data_vencimento if prazo else None,
+        dias_prazo=prazo.dias_prazo if prazo else None,
+    )
 
 @router.get(
     "/{action_id}",

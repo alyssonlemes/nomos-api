@@ -24,9 +24,11 @@ services:
         generateValue: true
       - key: DATAJUD_API_KEY
         sync: false
-      - key: ESCAVADOR_API_TOKEN
+      - key: JURIMAI_API_TOKEN
         sync: false
-      - key: ESCAVADOR_CALLBACK_TOKEN
+      - key: JURIMAI_CALLBACK_TOKEN
+        sync: false
+      - key: API_PUBLIC_URL
         sync: false
       - key: FRONTEND_URL
         sync: false

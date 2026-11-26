@@ -1,6 +1,6 @@
 # Nomos API
 
-API do escritório. Cobre autenticação, organizações, convites, perfis, clientes, processos, atividades, notificações, dashboard, planos, DataJud, jurimetria e acompanhamento pela Escavador.
+API do escritório. Cobre autenticação, organizações, convites, perfis, clientes, processos, atividades, notificações, dashboard, planos, DataJud, jurimetria e acompanhamento pela Juri+.
 
 O contrato de cada rota está em `/docs`.
 
@@ -14,7 +14,7 @@ Python 3.11, FastAPI, SQLAlchemy, PostgreSQL, Alembic e JWT.
 pip install -r requirements.txt
 ```
 
-Copie `.env.example` para `.env` e preencha o banco, o `SECRET_KEY` e as chaves de DataJud e Escavador.
+Copie `.env.example` para `.env` e preencha o banco, o `SECRET_KEY` e as chaves de DataJud e Juri+.
 
 ```bash
 alembic upgrade head

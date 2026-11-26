@@ -34,6 +34,9 @@ class ProcessoMovimento(Base):
     # Complemento (JSON serializado com campos adicionais retornados pelo DataJud)
     complemento_json = Column(Text)
 
+    # Preenchido quando o escritório trata a atualização vinda do acompanhamento.
+    tratado_em = Column(DateTime(timezone=True), nullable=True)
+
     # Relationship
     legal_action = relationship("LegalAction", back_populates="movimentos")
 

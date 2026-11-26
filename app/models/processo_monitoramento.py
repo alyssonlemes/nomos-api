@@ -5,7 +5,11 @@ from sqlalchemy.sql import func
 from app.database import Base
 
 class ProcessoMonitoramento(Base):
-    """Acompanhamento de um processo no Escavador, limitado por escritório."""
+    """Acompanhamento de um processo na Juri+, limitado por escritório.
+
+    escavador_id guarda o id do monitoramento na Juri+. O nome da coluna ficou
+    do provedor anterior para não reescrever a tabela.
+    """
 
     __tablename__ = "processo_monitoramentos"
     __table_args__ = (

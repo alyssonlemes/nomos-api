@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import and_, desc, nulls_last, or_
 from sqlalchemy.orm import Session
 
 from app.domain.planos import obter_plano
@@ -12,11 +13,14 @@ from app.domain.prazo_processual import STATUS_CUMPRIDO, apenas_digitos
 from app.models.legal_action import LegalAction
 from app.models.organization import Organization
 from app.models.processo_monitoramento import ProcessoMonitoramento
+from app.models.processo_movimento import ProcessoMovimento
 from app.models.processo_prazo import ProcessoPrazo
-from app.services.escavador_client import (
-    EscavadorClient,
-    EscavadorError,
-    monitoramento_de_conflito,
+from app.models.user import User
+from app.services.jurimai_client import (
+    JurimaiClient,
+    JurimaiError,
+    monitoramento_existente,
+    url_de_callback,
 )
 
 STATUS_ATIVOS = ("PENDENTE", "ENCONTRADO")
@@ -56,6 +60,61 @@ class MonitoramentoService:
         )
 
     @staticmethod
+    def listar_publicacoes(
+        db: Session,
+        organization_id: int,
+        *,
+        user_id: Optional[int],
+        situacao: str,
+        skip: int,
+        limit: int,
+    ) -> tuple[list[tuple[ProcessoMovimento, LegalAction, Optional[ProcessoPrazo]]], int, int]:
+        pendentes = (
+            _consulta_publicacoes(db, organization_id, user_id)
+            .filter(ProcessoMovimento.tratado_em.is_(None))
+            .count()
+        )
+        consulta = _consulta_publicacoes(db, organization_id, user_id)
+        if situacao == "pendente":
+            consulta = consulta.filter(ProcessoMovimento.tratado_em.is_(None))
+        elif situacao == "tratada":
+            consulta = consulta.filter(ProcessoMovimento.tratado_em.isnot(None))
+        total = consulta.count()
+        itens = (
+            consulta.order_by(
+                nulls_last(desc(ProcessoMovimento.data_hora)),
+                desc(ProcessoMovimento.id),
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return itens, total, pendentes
+
+    @staticmethod
+    def tratar_publicacao(
+        db: Session,
+        *,
+        movimento_id: int,
+        organization_id: int,
+        user_id: Optional[int],
+    ) -> Optional[tuple[ProcessoMovimento, LegalAction, Optional[ProcessoPrazo]]]:
+        encontrado = (
+            _consulta_publicacoes(db, organization_id, user_id)
+            .filter(ProcessoMovimento.id == movimento_id)
+            .first()
+        )
+        if not encontrado:
+            return None
+        registro = encontrado[0]
+        if registro.tratado_em is None:
+            registro.tratado_em = datetime.now(timezone.utc)
+            db.add(registro)
+            db.commit()
+            db.refresh(registro)
+        return encontrado
+
+    @staticmethod
     def listar_prazos(db: Session, legal_action_id: int, organization_id: int) -> list[ProcessoPrazo]:
         return (
             db.query(ProcessoPrazo)
@@ -71,7 +130,7 @@ class MonitoramentoService:
     def ativar(
         db: Session,
         legal_action: LegalAction,
-        client: EscavadorClient | None = None,
+        client: JurimaiClient | None = None,
     ) -> ProcessoMonitoramento:
         numero = (legal_action.number or "").strip()
         digitos = apenas_digitos(numero)
@@ -97,11 +156,11 @@ class MonitoramentoService:
                 status_code=409,
             )
 
-        api = client or EscavadorClient()
+        api = client or JurimaiClient()
         try:
-            remoto = api.criar_monitoramento(numero)
-        except EscavadorError as exc:
-            remoto = monitoramento_de_conflito(exc)
+            remoto = api.criar_monitoramento(numero, url_de_callback())
+        except JurimaiError as exc:
+            remoto = _reaproveitar(api, numero, exc)
             if remoto is None:
                 raise MonitoramentoIndisponivel(str(exc), _status_publico(exc.status_code)) from exc
 
@@ -115,7 +174,7 @@ class MonitoramentoService:
         registro.numero_digitos = digitos
         registro.escavador_id = _inteiro(remoto.get("id"))
         registro.status = str(remoto.get("status") or "PENDENTE")
-        registro.frequencia = str(remoto.get("frequencia") or "DIARIA")
+        registro.frequencia = _frequencia(remoto.get("frequencia"))
         registro.ativo = True
         registro.data_ultima_verificacao = _data_hora(remoto.get("data_ultima_verificacao"))
         db.add(registro)
@@ -127,7 +186,7 @@ class MonitoramentoService:
     def encerrar(
         db: Session,
         legal_action: LegalAction,
-        client: EscavadorClient | None = None,
+        client: JurimaiClient | None = None,
     ) -> Optional[ProcessoMonitoramento]:
         registro = MonitoramentoService.obter(db, legal_action.id, legal_action.organization_id)
         if not registro or not registro.ativo:
@@ -168,7 +227,7 @@ class MonitoramentoService:
     def _encerrar_remoto(
         db: Session,
         registro: ProcessoMonitoramento,
-        client: EscavadorClient | None,
+        client: JurimaiClient | None,
     ) -> None:
         if not registro.escavador_id:
             return
@@ -183,13 +242,55 @@ class MonitoramentoService:
         )
         if outros:
             return
-        api = client or EscavadorClient()
+        api = client or JurimaiClient()
         try:
             api.remover_monitoramento(int(registro.escavador_id))
-        except EscavadorError as exc:
+        except JurimaiError as exc:
             if exc.status_code == 404:
                 return
             raise MonitoramentoIndisponivel(str(exc), _status_publico(exc.status_code)) from exc
+
+def _consulta_publicacoes(db: Session, organization_id: int, user_id: Optional[int]):
+    consulta = (
+        db.query(ProcessoMovimento, LegalAction, ProcessoPrazo)
+        .join(LegalAction, LegalAction.id == ProcessoMovimento.legal_action_id)
+        .outerjoin(
+            ProcessoPrazo,
+            and_(
+                ProcessoPrazo.legal_action_id == ProcessoMovimento.legal_action_id,
+                ProcessoPrazo.escavador_movimentacao_id == ProcessoMovimento.codigo,
+            ),
+        )
+        .filter(
+            LegalAction.organization_id == organization_id,
+            ProcessoMovimento.codigo.like("juri-%"),
+        )
+    )
+    if user_id is not None:
+        consulta = consulta.filter(
+            or_(
+                LegalAction.user_id == user_id,
+                LegalAction.assigned_users.any(User.id == user_id),
+            )
+        )
+    return consulta
+
+
+def _reaproveitar(api: JurimaiClient, numero: str, erro: JurimaiError) -> dict | None:
+    if erro.status_code not in (409, 422):
+        return None
+    try:
+        return monitoramento_existente(api.listar_monitoramentos(), numero)
+    except JurimaiError:
+        return None
+
+
+def _frequencia(valor: object) -> str:
+    texto = str(valor or "diaria").strip().upper()
+    if texto == "DIÁRIA":
+        return "DIARIA"
+    return texto[:16]
+
 
 def _status_publico(status_code: int) -> int:
     if status_code in (401, 402, 409, 422, 503, 504):

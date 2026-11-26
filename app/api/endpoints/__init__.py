@@ -14,7 +14,7 @@ from app.api.endpoints.process_analysis import router as process_analysis_router
 from app.api.endpoints.activities import router as activities_router
 from app.api.endpoints.notifications import router as notifications_router
 from app.api.endpoints.access_profiles import router as access_profiles_router
-from app.api.endpoints.escavador_callback import router as escavador_callback_router
+from app.api.endpoints.jurimai_callback import router as jurimai_callback_router
 
 __all__ = [
     "auth_router",
@@ -33,5 +33,5 @@ __all__ = [
     "activities_router",
     "notifications_router",
     "access_profiles_router",
-    "escavador_callback_router",
+    "jurimai_callback_router",
 ]

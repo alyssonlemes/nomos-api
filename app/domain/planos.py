@@ -12,13 +12,14 @@ class Plano:
     nome: str
     usuarios: int
     processos: int
+    preco_centavos: int
 
 PLANO_PADRAO = "essencial"
 
 PLANOS: dict[str, Plano] = {
-    "essencial": Plano("essencial", "Essencial", usuarios=3, processos=50),
-    "profissional": Plano("profissional", "Profissional", usuarios=10, processos=200),
-    "escritorio": Plano("escritorio", "Escritório", usuarios=30, processos=800),
+    "essencial": Plano("essencial", "Essencial", usuarios=3, processos=50, preco_centavos=30_000),
+    "profissional": Plano("profissional", "Profissional", usuarios=10, processos=200, preco_centavos=60_000),
+    "escritorio": Plano("escritorio", "Escritório", usuarios=30, processos=500, preco_centavos=150_000),
 }
 
 def obter_plano(codigo: str | None) -> Plano:

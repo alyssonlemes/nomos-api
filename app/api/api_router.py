@@ -17,7 +17,7 @@ from app.api.endpoints import (
     activities_router,
     notifications_router,
     access_profiles_router,
-    escavador_callback_router,
+    jurimai_callback_router,
 )
 
 api_router = APIRouter()
@@ -119,7 +119,7 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    escavador_callback_router,
-    prefix="/integracao/escavador",
+    jurimai_callback_router,
+    prefix="/integracao/juri",
     tags=["Acompanhamento de processos"],
 )
