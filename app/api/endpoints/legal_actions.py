@@ -137,6 +137,7 @@ def listar_publicacoes(
     situacao: str = Query("pendente", pattern="^(pendente|tratada|todas)$"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(exigir_permissao("processos", "visualizar")),
     filter_user_id: Optional[int] = Depends(get_data_filter_user_id),
@@ -153,6 +154,7 @@ def listar_publicacoes(
         situacao=situacao,
         skip=skip,
         limit=limit,
+        search=search,
     )
     return PublicacaoListResponse(
         total=total,
